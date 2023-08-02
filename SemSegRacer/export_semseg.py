@@ -3,18 +3,17 @@ import glob
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import onnxruntime as ort
 import torch
 import torchvision.models.segmentation
 import torchvision.transforms as tf
 
-TRAIN_IMGS_FOLDER = "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/"
 TEST_IMGS_FOLDER = (
     "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/test/"
 )
-# MODEL_PATH = "low_res_models/5000.torch"  # Path to trained model
-MODEL_PATH = "5000.torch"  # Path to trained model
+INPUT_MODEL_PATH = "5000.torch"  # Path to trained model
+OUTPUT_ONNX_MODEL = "semseg.onnx"
 
-train_images = glob.glob(TRAIN_IMGS_FOLDER + "/*.png")
 test_images = glob.glob(TEST_IMGS_FOLDER + "/*.png")
 np.set_printoptions(threshold=np.inf)
 height = width = 600
@@ -34,22 +33,34 @@ Net = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=True)  # Loa
 # Change final layer to 3 classes
 Net.classifier[4] = torch.nn.Conv2d(256, 3, kernel_size=(1, 1), stride=(1, 1))
 Net = Net.to(device)  # Set net to GPU or CPU
-Net.load_state_dict(torch.load(MODEL_PATH))  # Load trained model
+Net.load_state_dict(torch.load(INPUT_MODEL_PATH))  # Load trained model
 Net.eval()  # Set to evaluation mode
 
+# Create dummy input and export to ONNX format
+dummy_input = torch.randn(1, 3, height, width).to(device)
+torch.onnx.export(Net, dummy_input, OUTPUT_ONNX_MODEL)
+
+# Load ONNX Model
+ort_session = ort.InferenceSession(OUTPUT_ONNX_MODEL)
+
 for img_path in test_images:
-    # for img_path in train_images:
     Img = cv2.imread(img_path)  # load test image
     height_orgin, widh_orgin, d = Img.shape  # Get image original size
     Img = transformImg(Img)  # Transform to pytorch
-    Img = torch.autograd.Variable(Img, requires_grad=False).to(device).unsqueeze(0)
-    print(Img.size())
-    with torch.no_grad():
-        Prd = Net(Img)["out"]  # Run net
-    Prd = tf.Resize((height_orgin, widh_orgin))(Prd[0])  # Resize to origninal size
-    # Prd = (3,600,600), so each pixel gets 3 probability score (1 for each available class), we choose the max of them
-    seg = torch.argmax(Prd, 0).cpu().detach().numpy().astype(np.uint8)
-    # Convert to a more distinct grayscale image based on pixel-wise classes
+
+    Img = Img.numpy().astype(np.float32)  # convert to numpy array
+    Img = np.expand_dims(Img, axis=0)  # Add batch dimension
+
+    # Inference
+    ort_inputs = {ort_session.get_inputs()[0].name: Img}
+    # Run model, [0] to get the output tensor
+    Prd = ort_session.run(None, ort_inputs)[0]
+
+    # Resize to original size
+    Prd = tf.Resize((height_orgin, widh_orgin))(torch.from_numpy(Prd[0]))
+
+    # Get the predicted class for each pixel
+    seg = torch.argmax(Prd, 0).numpy().astype(np.uint8)
     seg[seg == 1] = 120
     seg[seg == 2] = 250
     cv2.imshow("seg", seg)
