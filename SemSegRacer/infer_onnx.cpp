@@ -16,47 +16,49 @@ int main()
     Ort::Session      onnx_session(env, model_path.c_str(), session_options);
 
     cv::Mat img = cv::imread("/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/test/02299.png");
+    // cv::Mat img = cv::imread("/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/00004.png");
     assert(!img.empty() && "Could not open or find the image");
 
     // Resize the image to the size expected by the model.
-    cv::resize(img, img, cv::Size(600, 600));
+    int height = 600;
+    int width  = 600;
+    cv::cvtColor(img, img, cv::COLOR_BGR2RGB);
+    cv::resize(img, img, cv::Size(height, width));
     cv::imshow("input", img);
     cv::waitKey(0);
 
     // // Normalize the image pixels to be in the range [0, 1].
-    img.convertTo(img, CV_32F, 1.0 / 255);
+    // img.convertTo(img, CV_32F, 1.0 / 255);
+    img.convertTo(img, CV_32FC3);
+    img /= 255.0;
 
-    // // Prepare the input tensor.
-    std::array<int64_t, 4> input_shape{1, 3, img.rows, img.cols};
-    std::vector<float>     img_data;
-    img_data.reserve(img.total() * img.channels());
-
-    for (int y = 0; y < img.rows; ++y)
+    // Create ONNX Runtime input tensor
+    // Create ONNX Runtime input tensor
+    size_t             input_tensor_size = 1 * 3 * height * width;
+    std::vector<float> input_tensor_values(input_tensor_size);
+    float             *input_tensor_data = input_tensor_values.data();
+    for (int c = 0; c < 3; ++c)
     {
-        for (int x = 0; x < img.cols; ++x)
+        for (int h = 0; h < height; ++h)
         {
-            cv::Vec<float, 3> &pixel = img.at<cv::Vec<float, 3>>(y, x);
-            for (int c = 0; c < img.channels(); ++c)
+            for (int w = 0; w < width; ++w)
             {
-                img_data.push_back(pixel[c]);
+                input_tensor_data[c * height * width + h * width + w] = img.at<cv::Vec3f>(h, w)[c];
             }
         }
     }
 
-    // // BGR to RGB.
-    for (size_t i = 0; i < img_data.size(); i += 3)
-    {
-        std::swap(img_data[i], img_data[i + 2]);
-    }
-
     // // Create input tensor object from data values.
-    Ort::MemoryInfo memInfo      = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
-    Ort::Value      input_tensor = Ort::Value::CreateTensor<float>(
-        memInfo, img_data.data(), img_data.size(), input_shape.data(), input_shape.size());
+    Ort::MemoryInfo memInfo = Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
+    // Ort::Value      input_tensor = Ort::Value::CreateTensor<float>(
+    //     memInfo, img_data.data(), img_data.size(), input_shape.data(), input_shape.size());
+    std::array<int64_t, 4> input_shape{1, 3, img.rows, img.cols};
+    Ort::Value             input_tensor = Ort::Value::CreateTensor<float>(
+        memInfo, input_tensor_data, input_tensor_size, input_shape.data(), input_shape.size());
 
     // // Run the model on the input tensor and collect outputs.
     const char             *input_names[]  = {"input.1"};
-    const char             *output_names[] = {"619"};
+    const char             *output_names[] = {"605"};
     std::vector<Ort::Value> output_tensors =
         onnx_session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
 
@@ -85,7 +87,7 @@ int main()
         }
     }
 
-    seg *= 255; // normalize to range 0-255 if needed
+    seg *= 120; // normalize to range 0-255 if needed
     cv::imshow("seg", seg);
     cv::waitKey(0);
 

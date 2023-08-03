@@ -14,7 +14,10 @@ TEST_IMGS_FOLDER = (
 INPUT_MODEL_PATH = "5000.torch"  # Path to trained model
 OUTPUT_ONNX_MODEL = "semseg.onnx"
 
-test_images = glob.glob(TEST_IMGS_FOLDER + "/*.png")
+# test_images = glob.glob(TEST_IMGS_FOLDER + "/*.png")
+test_images = [
+    "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/00004.png"
+]
 np.set_printoptions(threshold=np.inf)
 height = width = 600
 
@@ -43,6 +46,7 @@ torch.onnx.export(Net, dummy_input, OUTPUT_ONNX_MODEL)
 # Load ONNX Model
 ort_session = ort.InferenceSession(OUTPUT_ONNX_MODEL)
 
+
 for img_path in test_images:
     Img = cv2.imread(img_path)  # load test image
     height_orgin, widh_orgin, d = Img.shape  # Get image original size
@@ -50,6 +54,7 @@ for img_path in test_images:
 
     Img = Img.numpy().astype(np.float32)  # convert to numpy array
     Img = np.expand_dims(Img, axis=0)  # Add batch dimension
+    # print(Img.ravel()[500:600])
 
     # Inference
     ort_inputs = {ort_session.get_inputs()[0].name: Img}
