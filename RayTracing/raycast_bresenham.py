@@ -71,8 +71,11 @@ def bresenham(x0, y0, x1, y1):
 
 def check_collision(screen, ray_pixels):
     for px, py in ray_pixels:
-        if screen.get_at((px, py))[:3] == OBSTACLE_COLOR[:3]:
-            return px, py
+        try:
+            if screen.get_at((px, py))[:3] == OBSTACLE_COLOR[:3]:
+                return px, py
+        except:
+            print((px, py))
     return None
 
 
