@@ -35,10 +35,9 @@ void convertRaylibToOpencv(const std::array<uint8_t, WIDTH * HEIGHT * 4> &raylib
 // use taskset -c to bind core
 int main(int argc, char **argv)
 {
-    const char *shm_file = "SPMCQueue_test";
 
     Q<okitch::SharedMsg<WIDTH, HEIGHT>, 4> *q; // shared memory object
-    q = shmmap<okitch::SharedMsg<WIDTH, HEIGHT>, 4>(shm_file);
+    q = shmmap<okitch::SharedMsg<WIDTH, HEIGHT>, 4>(okitch::shm_file_semseg_in);
     assert(q);
 
     auto reader = q->getReader();

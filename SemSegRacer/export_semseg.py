@@ -8,16 +8,10 @@ import torch
 import torchvision.models.segmentation
 import torchvision.transforms as tf
 
-TEST_IMGS_FOLDER = (
-    "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/test/"
-)
 INPUT_MODEL_PATH = "5000.torch"  # Path to trained model
 OUTPUT_ONNX_MODEL = "semseg.onnx"
+TEST_IMGS = ["/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/00004.png"]
 
-# test_images = glob.glob(TEST_IMGS_FOLDER + "/*.png")
-test_images = [
-    "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/00004.png"
-]
 np.set_printoptions(threshold=np.inf)
 height = width = 600
 
@@ -33,21 +27,20 @@ transformImg = tf.Compose(
 # Check if there is GPU if not set trainning to CPU (very slow)
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 Net = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=True)  # Load net
-# Change final layer to 3 classes
+# Change final layer to 4 classes
 Net.classifier[4] = torch.nn.Conv2d(256, 4, kernel_size=(1, 1), stride=(1, 1))
 Net = Net.to(device)  # Set net to GPU or CPU
 Net.load_state_dict(torch.load(INPUT_MODEL_PATH))  # Load trained model
 Net.eval()  # Set to evaluation mode
 
-# Create dummy input and export to ONNX format
+# Create dummy input to excite the network and export to ONNX format
 dummy_input = torch.randn(1, 3, height, width).to(device)
 torch.onnx.export(Net, dummy_input, OUTPUT_ONNX_MODEL)
 
 # Load ONNX Model
 ort_session = ort.InferenceSession(OUTPUT_ONNX_MODEL)
 
-
-for img_path in test_images:
+for img_path in TEST_IMGS:
     Img = cv2.imread(img_path)  # load test image
     height_orgin, widh_orgin, d = Img.shape  # Get image original size
     # Remove the annotated layer from the training image
@@ -56,7 +49,6 @@ for img_path in test_images:
 
     Img = Img.numpy().astype(np.float32)  # convert to numpy array
     Img = np.expand_dims(Img, axis=0)  # Add batch dimension
-    # print(Img.ravel()[500:600])
 
     # Inference
     ort_inputs = {ort_session.get_inputs()[0].name: Img}

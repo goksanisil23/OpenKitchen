@@ -68,10 +68,8 @@ class Vis
     {
         enable_img_sharing_ = true;
 
-        const char *shm_file = "SPMCQueue_test";
-
         constexpr int kShmQueueSize{4};
-        q_ = shmmap<SharedMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_file);
+        q_ = shmmap<SharedMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_file_semseg_in);
         assert(q_);
     }
 

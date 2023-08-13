@@ -9,7 +9,6 @@ import torchvision.transforms as tf
 
 TRAIN_IMGS_FOLDER = "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/"
 TEST_IMGS_FOLDER = "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/"
-# MODEL_PATH = "low_res_models/5000.torch"  # Path to trained model
 MODEL_PATH = "5000.torch"  # Path to trained model
 
 train_images = glob.glob(TRAIN_IMGS_FOLDER + "/*.png")
