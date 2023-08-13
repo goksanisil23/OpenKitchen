@@ -54,10 +54,13 @@ transformAnn = tf.Compose(
 )
 
 
-def generateAnnotationForRaylibImg(rgb_img: np.ndarray):
+# Raylib images we receive renders drivable area shaded
+# During testing, this area won't be shaded. So we use the shaded
+# area for annotation and remove it for training
+def genAnnoAndInputImg(rgb_img: np.ndarray):
     # Set all annotation pixels to 0 by default
     anno_mask = np.zeros(rgb_img.shape[0:2], np.float32)
-    # Pure red pixels are right(anno = 1), pure blue pixels are left (anno = 2) lane
+    # Pure red pixels are right(anno = 1), pure blue pixels are left (anno = 2) boundary
     anno_mask[
         np.where(
             (rgb_img[:, :, 0] == 0)
@@ -74,6 +77,20 @@ def generateAnnotationForRaylibImg(rgb_img: np.ndarray):
         )
     ] = 2
 
+    # Pure green is drivable area
+    anno_mask[
+        np.where(
+            (rgb_img[:, :, 0] == 0)
+            & (rgb_img[:, :, 1] == 255)
+            & (rgb_img[:, :, 2] == 0)
+        )
+    ] = 3
+
+    # Set the drivable area to background color
+    rgb_img[
+        (rgb_img[:, :, 0] == 0) & (rgb_img[:, :, 1] == 255) & (rgb_img[:, :, 2] == 0)
+    ] = [0, 0, 0]
+
     return anno_mask
 
 
@@ -82,7 +99,7 @@ def ReadRandomImage():  # First lets load random image and  the corresponding an
     idx = np.random.randint(0, len(train_images))  # Select random image
     rgb_img = cv2.imread(train_images[idx])[:, :, 0:3]
 
-    anno_mask = generateAnnotationForRaylibImg(rgb_img)
+    anno_mask = genAnnoAndInputImg(rgb_img)
 
     rgb_tensor = transformImg(rgb_img)
     anno_tensor = transformAnn(anno_mask)
@@ -102,22 +119,17 @@ def LoadBatch():  # Load batch of images
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # Load neuralnet
 Net = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=True)
-# Change final layer to 3 classes
-Net.classifier[4] = torch.nn.Conv2d(256, 3, kernel_size=(1, 1), stride=(1, 1))
+# Change final layer to 4 classes
+Net.classifier[4] = torch.nn.Conv2d(256, 4, kernel_size=(1, 1), stride=(1, 1))
 Net = Net.to(device)
 # Create adam optimizer
 optimizer = torch.optim.Adam(params=Net.parameters(), lr=Learning_Rate)
 
-
 # ----------------Train--------------------------------------------------------------------------
 for itr in range(EPOCH_LIMIT + 1):  # Training loop
     images, ann = LoadBatch()  # Load taining batch
-    images = torch.autograd.Variable(images, requires_grad=False).to(
-        device
-    )  # Load image batch
-    ann = torch.autograd.Variable(ann, requires_grad=False).to(
-        device
-    )  # Load annotation batch
+    images = torch.autograd.Variable(images, requires_grad=False).to(device)
+    ann = torch.autograd.Variable(ann, requires_grad=False).to(device)
     Pred = Net(images)["out"]  # make prediction
     Net.zero_grad()
     criterion = torch.nn.CrossEntropyLoss()  # Set loss function

@@ -1,5 +1,9 @@
 #pragma once
 
+#include "raylib_img_msg.h"
+#include "spmc_queue.h"
+
+#include <cassert>
 #include <filesystem>
 #include <iomanip>
 #include <memory>
@@ -7,9 +11,11 @@
 
 #include "raylib-cpp.hpp"
 
-#define RAYLIB_ZOOM_ENABLED
 namespace okitch
 {
+constexpr int kScreenWidth  = 1000;
+constexpr int kScreenHeight = 1000;
+
 // Visualization boilerplate class
 class Vis
 {
@@ -24,13 +30,6 @@ class Vis
         camera_->SetZoom(5.F);
         camera_->SetOffset({window_width / 2, window_height / 2});
         camera_->SetRotation(0);
-
-        // Create directory for the training images to be saved
-        auto save_dir_fs{std::filesystem::path(image_save_dir_)};
-        if (!std::filesystem::exists(save_dir_fs))
-        {
-            std::filesystem::create_directory(save_dir_fs);
-        }
     }
 
     void activateDrawing(const raylib::Vector2 driver_pos, const float driver_rot)
@@ -51,11 +50,72 @@ class Vis
                          WHITE);
     }
 
+    void enableImageSaving(const std::string &image_save_dir)
+    {
+        enable_img_saving_ = true;
+
+        image_save_dir_ = image_save_dir;
+
+        // Create directory for the training images to be saved
+        auto save_dir_fs{std::filesystem::path(image_save_dir_)};
+        if (!std::filesystem::exists(save_dir_fs))
+        {
+            std::filesystem::create_directory(save_dir_fs);
+        }
+    }
+
+    void enableImageSharing()
+    {
+        enable_img_sharing_ = true;
+
+        const char *shm_file = "SPMCQueue_test";
+
+        constexpr int kShmQueueSize{4};
+        q_ = shmmap<SharedMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_file);
+        assert(q_);
+    }
+
     void deactivateDrawing()
     {
+        static size_t ctr{0};
+
         camera_->EndMode();
         window_->DrawFPS();
         window_->EndDrawing();
+
+        ctr++;
+        if (enable_img_saving_)
+        {
+            if (ctr % 10 == 0)
+                saveImage();
+        }
+        if (enable_img_sharing_)
+        {
+            shareCurrentImage();
+        }
+    }
+
+    void shareCurrentImage()
+    {
+        static size_t ctr{0};
+        raylib::Image img = LoadImageFromScreen();
+        // Copy the image data to struct
+        // raylib image is row-major order, RGBA/RGBA/RGBA/...
+        unsigned char *img_data = (unsigned char *)(img.data);
+        q_->write(
+            [img_data](SharedMsg<kScreenWidth, kScreenHeight> &msg)
+            {
+                msg.idx = ctr;
+                for (int i{0}; i < kScreenHeight * kScreenHeight * 4; i++)
+                {
+                    msg.data[i] = (uint8_t)(img_data[i]);
+                }
+            });
+
+        // Raylib-cpp's raylib::Image has a destructor that calls Unload() that free's the img.data
+        // free(img.data);
+
+        ctr++;
     }
 
     void saveImage()
@@ -74,8 +134,12 @@ class Vis
   public:
     std::unique_ptr<raylib::Camera2D> camera_;
     std::unique_ptr<raylib::Window>   window_;
-    std::string                       image_save_dir_{"./raylib_images/"};
+    bool                              enable_img_saving_{false};
+    bool                              enable_img_sharing_{false};
+    std::string                       image_save_dir_{};
     raylib::Vector2                   driver_size_{1.9, 4.572}; // width/height based on Porsche-911
+
+    Q<SharedMsg<kScreenWidth, kScreenHeight>, 4> *q_; // shared memory object
 };
 
 class Driver

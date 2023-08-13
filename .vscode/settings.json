@@ -66,6 +66,16 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "filesystem": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "any": "cpp",
+        "charconv": "cpp",
+        "cuchar": "cpp",
+        "regex": "cpp",
+        "future": "cpp",
+        "scoped_allocator": "cpp",
+        "shared_mutex": "cpp",
+        "valarray": "cpp"
     }
 }
