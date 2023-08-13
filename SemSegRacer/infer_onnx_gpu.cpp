@@ -2,17 +2,18 @@
 #include <opencv4/opencv2/opencv.hpp>
 
 #include <cassert>
+#include <chrono>
 #include <filesystem>
 #include <iostream>
 #include <vector>
 
 constexpr bool    kuseCUDA{true};
-const std::string IMGS_DIR         = "/home/raylib_images/test/";
+const std::string IMGS_DIR         = "/home/raw_images/";
 constexpr int     HEIGHT           = 600;
 constexpr int     WIDTH            = 600;
 constexpr int     BATCH_SIZE       = 1;
 constexpr int     IN_CHANNEL_SIZE  = 3; // R,B,G
-constexpr int     OUT_CHANNEL_SIZE = 3; // 0=background, 1=left, 2=right lane
+constexpr int     OUT_CHANNEL_SIZE = 4; // 0=background, 1=left, 2=right lane boundary, 3= drivable area
 
 // Reads the input images from a directory
 std::vector<std::string> getPngFilesInDirectory(const std::string &directory_path)
@@ -43,7 +44,6 @@ void convertAndNormalizeImg(cv::Mat &img)
 // Creates ONNX Runtime input tensor
 void generateFlatTensorData(const cv::Mat &img, std::vector<float> &flat_input_vec)
 {
-
     // This model expects NCHW format (Batch, Channels, Height, Width) for input serialization
     size_t input_tensor_size = BATCH_SIZE * IN_CHANNEL_SIZE * HEIGHT * WIDTH;
     flat_input_vec.resize(input_tensor_size);
@@ -81,11 +81,15 @@ void convertOutputAndShow(const float *output_array)
                     max_id  = c;
                 }
             }
-            seg.at<uchar>(i, j) = max_id;
+
+            // Assign color class based on highest probably class
+            if ((max_id == 1) || (max_id == 2))
+                seg.at<uchar>(i, j) = 250;
+            else if (max_id == 3)
+                seg.at<uchar>(i, j) = 120;
         }
     }
 
-    seg *= 120; // normalize to range 0-255 if needed
     cv::imshow("seg", seg);
     cv::waitKey(10);
 }
@@ -104,7 +108,6 @@ int main()
         OrtCUDAProviderOptions cuda_options{};
         session_options.AppendExecutionProvider_CUDA(cuda_options);
     }
-    session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_EXTENDED);
 
     const std::string model_path = "semseg.onnx"; // update with actual model path
     Ort::Session      onnx_session(env, model_path.c_str(), session_options);
@@ -129,8 +132,12 @@ int main()
         // Run the model on the input tensor and collect outputs.
         const char             *input_names[]  = {onnx_session.GetInputName(0, Ort::AllocatorWithDefaultOptions())};
         const char             *output_names[] = {onnx_session.GetOutputName(0, Ort::AllocatorWithDefaultOptions())};
+        auto                    t0             = std::chrono::steady_clock::now();
         std::vector<Ort::Value> output_tensors =
             onnx_session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+        auto t1        = std::chrono::steady_clock::now();
+        auto infer_dur = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+        std::cout << "inference: " << infer_dur << " ms." << std::endl;
 
         // Get pointer to output tensor float data.
         float *output_array = output_tensors[0].GetTensorMutableData<float>();

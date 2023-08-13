@@ -173,14 +173,14 @@ void centerTrackPointsToWindow(const Extent2d &track_extent,
 
 // Given the track center coordinates and left & right lane widths, calculates the track boundaries on left and right
 void calculateTrackLanes(const TrackData    &track_data_points,
-                         std::vector<float> &right_bound_x,
-                         std::vector<float> &right_bound_y,
-                         std::vector<float> &left_bound_x,
-                         std::vector<float> &left_bound_y,
-                         std::vector<float> &left_lane_center_x,
-                         std::vector<float> &left_lane_center_y,
-                         std::vector<float> &right_lane_center_x,
-                         std::vector<float> &right_lane_center_y)
+                         std::vector<float> &left_bound_inner_x,
+                         std::vector<float> &left_bound_inner_y,
+                         std::vector<float> &left_bound_outer_x,
+                         std::vector<float> &left_bound_outer_y,
+                         std::vector<float> &right_bound_inner_x,
+                         std::vector<float> &right_bound_inner_y,
+                         std::vector<float> &right_bound_outer_x,
+                         std::vector<float> &right_bound_outer_y)
 {
 
     // Find the heading of the line so that we can draw a perpendicular point, lane width away
@@ -200,29 +200,35 @@ void calculateTrackLanes(const TrackData    &track_data_points,
         dy[i] /= mag[i];
     }
 
-    right_bound_x.resize(dx.size());
-    right_bound_y.resize(dx.size());
-    left_bound_x.resize(dx.size());
-    left_bound_y.resize(dx.size());
-    left_lane_center_x.resize(dx.size());
-    left_lane_center_y.resize(dx.size());
-    right_lane_center_x.resize(dx.size());
-    right_lane_center_y.resize(dx.size());
+    left_bound_inner_x.resize(dx.size());
+    left_bound_inner_y.resize(dx.size());
+    left_bound_outer_x.resize(dx.size());
+    left_bound_outer_y.resize(dx.size());
+    right_bound_inner_x.resize(dx.size());
+    right_bound_inner_y.resize(dx.size());
+    right_bound_outer_x.resize(dx.size());
+    right_bound_outer_y.resize(dx.size());
+
+    constexpr float kBoundaryThickness{1.2F};
 
     // Calculate track boundaries that are perpendicular lane width distance away from track center
     for (size_t i = 0; i < dx.size(); ++i)
     {
-        right_bound_x[i] = track_data_points.x_m[i] + track_data_points.w_tr_right_m[i] * dy[i];
-        right_bound_y[i] = track_data_points.y_m[i] - track_data_points.w_tr_right_m[i] * dx[i];
+        right_bound_inner_x[i] = track_data_points.x_m[i] + track_data_points.w_tr_right_m[i] * dy[i];
+        right_bound_inner_y[i] = track_data_points.y_m[i] - track_data_points.w_tr_right_m[i] * dx[i];
 
-        left_bound_x[i] = track_data_points.x_m[i] - track_data_points.w_tr_left_m[i] * dy[i];
-        left_bound_y[i] = track_data_points.y_m[i] + track_data_points.w_tr_left_m[i] * dx[i];
+        left_bound_inner_x[i] = track_data_points.x_m[i] - track_data_points.w_tr_left_m[i] * dy[i];
+        left_bound_inner_y[i] = track_data_points.y_m[i] + track_data_points.w_tr_left_m[i] * dx[i];
 
-        right_lane_center_x[i] = track_data_points.x_m[i] + track_data_points.w_tr_right_m[i] / 2.F * dy[i];
-        right_lane_center_y[i] = track_data_points.y_m[i] - track_data_points.w_tr_right_m[i] / 2.F * dx[i];
+        right_bound_outer_x[i] =
+            track_data_points.x_m[i] + (track_data_points.w_tr_right_m[i] + kBoundaryThickness) * dy[i];
+        right_bound_outer_y[i] =
+            track_data_points.y_m[i] - (track_data_points.w_tr_right_m[i] + kBoundaryThickness) * dx[i];
 
-        left_lane_center_x[i] = track_data_points.x_m[i] - track_data_points.w_tr_left_m[i] / 2.F * dy[i];
-        left_lane_center_y[i] = track_data_points.y_m[i] + track_data_points.w_tr_left_m[i] / 2.F * dx[i];
+        left_bound_outer_x[i] =
+            track_data_points.x_m[i] - (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dy[i];
+        left_bound_outer_y[i] =
+            track_data_points.y_m[i] + (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dx[i];
     }
 }
 
