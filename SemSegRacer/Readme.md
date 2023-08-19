@@ -10,7 +10,7 @@ Raylib is used to shade track boundaries and the area between them using triangl
 ```
 <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/SemSegRacer/resources/example_training_image.png" width=30% height=30%>
 
-Since each lane is rendered a different color, we can generate annotation mask on the fly according to rgb value of each pixel. We also modify the final layer of the original deeplabv3 network so that it only produces 4 class probabilities at the end (left/right/drivable area/ none)
+Since each boundary and track section is rendered a different color, we can generate annotation mask on the fly according to rgb value of each pixel. We replace the green track section with the background color after we used the color value for annotation, so that the agent doesn't just learn to recognize colors but also the geometric relations. We also modify the final layer of the original deeplabv3 network so that it only produces 4 class probabilities at the end (left/right/drivable area/ none)
 ```sh
 python train_semseg.py
 ```
@@ -21,7 +21,7 @@ python export_semseg.py
 
 ### Onnx GPU runtime
 Build the docker image that contains ONNX runtime with CUDA dependencies and OpenCV with GPU support.
-Note that we add user and group id as identical to the host in order to allow shared memory with the host.
+Note that we add user and group id as identical to the host in order to allow shared memory communication with the host. This is needed in order to transfer the images in runtime from the simulator to the inference process running inside docker.
 ```sh
 docker build -t onnxruntime-cuda-okitch-semseg -f Dockerfile.semseg .
 docker build -t onnxruntime-cuda-okitch-semseg-user \
@@ -45,4 +45,4 @@ cd /home
 ./infer_onnx_gpu_from_raylib
 ```
 
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/SemSegRacer/resources/inference_gpu.gif" width=50% height=50%>
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/SemSegRacer/resources/inference_gpu.gif" width=80% height=80%>

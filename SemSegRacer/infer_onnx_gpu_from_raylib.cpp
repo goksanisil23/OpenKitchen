@@ -121,7 +121,7 @@ int main()
         session_options.AppendExecutionProvider_CUDA(cuda_options);
     }
 
-    const std::string model_path = "semseg.onnx"; // update with actual model path
+    const std::string model_path = "semseg.onnx";
     Ort::Session      onnx_session(env, model_path.c_str(), session_options);
     Ort::MemoryInfo   memInfo =
         Ort::MemoryInfo::CreateCpu(OrtAllocatorType::OrtArenaAllocator, OrtMemType::OrtMemTypeDefault);
@@ -132,7 +132,7 @@ int main()
 
     // Create shared mem reader
     Q<okitch::SharedMsg<IN_IMG_WIDTH, IN_IMG_HEIGHT>, 4> *q; // shared memory object
-    q = shmmap<okitch::SharedMsg<IN_IMG_WIDTH, IN_IMG_HEIGHT>, 4>(okitch::shm_file_semseg_in);
+    q = shmmap<okitch::SharedMsg<IN_IMG_WIDTH, IN_IMG_HEIGHT>, 4>("raylib_semseg_input_shmem");
     assert(q);
 
     auto reader = q->getReader();

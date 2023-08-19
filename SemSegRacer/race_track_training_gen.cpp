@@ -2,9 +2,9 @@
 #include <string>
 #include <vector>
 
+#include "race_track_utils.hpp"
 #include "raylib-cpp.hpp"
 #include "raylib_utils.hpp"
-#include "utils.hpp"
 
 int main(int argc, char **argv)
 {
