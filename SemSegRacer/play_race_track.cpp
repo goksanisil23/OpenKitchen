@@ -2,13 +2,9 @@
 #include <string>
 #include <vector>
 
+#include "race_track_utils.hpp"
 #include "raylib-cpp.hpp"
 #include "raylib_utils.hpp"
-#include "utils.hpp"
-
-struct CurImg
-{
-};
 
 int main(int argc, char **argv)
 {
@@ -46,7 +42,8 @@ int main(int argc, char **argv)
     raylib::Vector2 *left_bnd_outer_pts  = okitch::convertToRaylibArray(left_bound_outer_x, left_bound_outer_y);
 
     okitch::Vis visualizer(okitch::kScreenWidth, okitch::kScreenHeight);
-    visualizer.enableImageSharing();
+    // enables sharing of the currently rendered window via shared memory
+    visualizer.enableImageSharing("raylib_semseg_input_shmem");
 
     okitch::Driver driver({track_data_points.x_m[0], track_data_points.y_m[0]}, 0.F);
 
@@ -57,6 +54,7 @@ int main(int argc, char **argv)
         {
             okitch::shadeAreaBetweenCurves(right_bnd_inner_pts, right_bnd_outer_pts, num_pts, raylib::Color(0, 0, 255));
             okitch::shadeAreaBetweenCurves(left_bnd_inner_pts, left_bnd_outer_pts, num_pts, raylib::Color(255, 0, 0));
+            okitch::shadeAreaBetweenCurves(left_bnd_inner_pts, right_bnd_inner_pts, num_pts, raylib::Color(0, 255, 0));
             visualizer.drawDriver(driver.pos_, driver.rot_);
         }
         visualizer.deactivateDrawing();

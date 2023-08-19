@@ -64,12 +64,12 @@ class Vis
         }
     }
 
-    void enableImageSharing()
+    void enableImageSharing(const char *shm_filename)
     {
         enable_img_sharing_ = true;
 
         constexpr int kShmQueueSize{4};
-        q_ = shmmap<SharedMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_file_semseg_in);
+        q_ = shmmap<SharedMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_filename);
         assert(q_);
     }
 

@@ -10,7 +10,7 @@ import torchvision.transforms as tf
 
 INPUT_MODEL_PATH = "5000.torch"  # Path to trained model
 OUTPUT_ONNX_MODEL = "semseg.onnx"
-TEST_IMGS = ["/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images/00004.png"]
+TEST_IMGS = ["raylib_images/00004.png"]
 
 np.set_printoptions(threshold=np.inf)
 height = width = 600

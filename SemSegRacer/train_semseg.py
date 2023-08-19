@@ -1,23 +1,22 @@
 """
 This script is for training a semantic segmentation model based on race track images rendered via Raylib
 
-input a set of race track images, each paired with a corresponding segmentation mask. 
+Input is a set of race track images, we generate the segmentation mask on the fly since the classes are associated
+to RGB values of pixesls(for simplicity). However, we replace the drivable area color from the input images with the
+background color after annotation so that the network does not just learn to differentiate colors. 
 The model is trained to classify each pixel in the image according to the different 
 classes represented in the masks (e.g., road, grass, sand, etc.).
 
 Usage:
-    python3 train_segmentation.py --images path/to/images --masks path/to/masks
-
-Inputs:
-    --images: A directory containing the input images. The images should be in JPEG or PNG format.
-    --masks: A directory containing the corresponding segmentation masks. Each mask should have the same name as its corresponding image.
+    python3 train_semseg.py TRAIN_IMGS_DIR 
 
 Outputs:
-    A trained model file, as well as plots of the model's performance over time.
+    A trained model (onnx) file per each epoch
 """
 
 import glob
 import os
+import sys
 
 import cv2
 import matplotlib.pyplot as plt
@@ -26,17 +25,23 @@ import torch
 import torchvision.models.segmentation
 import torchvision.transforms as tf
 
-torch.cuda.empty_cache()
-
+########### TRAINING HYPERPARAMETERS ###########
+# Consider adjusting batch and image size based on the GPU memory available.
 Learning_Rate = 1e-5
 WIDTH = HEIGHT = 600  # desired image width and height for training
 BATCH_SIZE = 3
 EPOCH_LIMIT = 5000
+########### ########### ########### ###########
+torch.cuda.empty_cache()
 
-train_dataset_folder = "/home/s0001734/Downloads/OpenKitchen/SemSegRacer/raylib_images"
-train_images = glob.glob(train_dataset_folder + "/*.png")
+if len(sys.argv) != 2:
+    print("Usage: train_semseg.py PATH_TO_TRAINING_IMGS")
+    sys.exit(1)
 
-# ----------------------------------------------Transform image-------------------------------------------------------------------
+TRAIN_DATASET_DIR = sys.argv[1]
+train_images = glob.glob(os.path.join(TRAIN_DATASET_DIR, "*.png"))
+
+# ----------------------------------------------Transform image------------------------------------------
 transformImg = tf.Compose(
     [
         tf.ToPILImage(),
@@ -54,13 +59,13 @@ transformAnn = tf.Compose(
 )
 
 
-# Raylib images we receive renders drivable area shaded
+# Raylib images we receive renders drivable area shaded.
 # During testing, this area won't be shaded. So we use the shaded
 # area for annotation and remove it for training
 def genAnnoAndInputImg(rgb_img: np.ndarray):
     # Set all annotation pixels to 0 by default
     anno_mask = np.zeros(rgb_img.shape[0:2], np.float32)
-    # Pure red pixels are right(anno = 1), pure blue pixels are left (anno = 2) boundary
+    # Pure red pixels are right boundary (anno = 1)
     anno_mask[
         np.where(
             (rgb_img[:, :, 0] == 0)
@@ -69,6 +74,7 @@ def genAnnoAndInputImg(rgb_img: np.ndarray):
         )
     ] = 1
 
+    #  pure blue pixels are left boundary (anno = 2)
     anno_mask[
         np.where(
             (rgb_img[:, :, 0] == 255)
@@ -77,7 +83,7 @@ def genAnnoAndInputImg(rgb_img: np.ndarray):
         )
     ] = 2
 
-    # Pure green is drivable area
+    # Pure green is drivable area (anno = 3)
     anno_mask[
         np.where(
             (rgb_img[:, :, 0] == 0)

@@ -7,13 +7,12 @@
 #include <iostream>
 #include <vector>
 
-constexpr bool    kuseCUDA{true};
-const std::string IMGS_DIR         = "/home/raw_images/";
-constexpr int     HEIGHT           = 600;
-constexpr int     WIDTH            = 600;
-constexpr int     BATCH_SIZE       = 1;
-constexpr int     IN_CHANNEL_SIZE  = 3; // R,B,G
-constexpr int     OUT_CHANNEL_SIZE = 4; // 0=background, 1=left, 2=right lane boundary, 3= drivable area
+constexpr bool kuseCUDA{true};
+constexpr int  HEIGHT           = 600;
+constexpr int  WIDTH            = 600;
+constexpr int  BATCH_SIZE       = 1;
+constexpr int  IN_CHANNEL_SIZE  = 3; // R,B,G
+constexpr int  OUT_CHANNEL_SIZE = 4; // 0=background, 1=left, 2=right lane boundary, 3= drivable area
 
 // Reads the input images from a directory
 std::vector<std::string> getPngFilesInDirectory(const std::string &directory_path)
@@ -94,10 +93,17 @@ void convertOutputAndShow(const float *output_array)
     cv::waitKey(10);
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc != 2)
+    {
+        std::cerr << "Usage: infer_onnx_gpu_from_file INPUT_IMGS_DIR" << std::endl;
+        return -1;
+    }
+    const std::string imgs_dir{argv[1]};
     // Get all images in the directory
-    auto imgs = getPngFilesInDirectory(IMGS_DIR);
+    auto imgs = getPngFilesInDirectory(imgs_dir);
+
     // Initialize an inference session with the ONNX model.
     Ort::Env            env(ORT_LOGGING_LEVEL_WARNING, "ModelInference");
     Ort::SessionOptions session_options;
