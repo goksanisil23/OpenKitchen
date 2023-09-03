@@ -69,12 +69,6 @@ class SPMCQueue
     alignas(128) uint32_t write_idx = 0;
 };
 
-// struct Msg
-// {
-//     uint64_t i;
-//     uint64_t pad[188];
-// };
-
 template <typename TUserMsg, size_t QueueSize>
 using Q = SPMCQueue<TUserMsg, QueueSize>;
 
