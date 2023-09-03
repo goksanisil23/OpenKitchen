@@ -19,12 +19,39 @@ struct TrackData
     std::vector<float> w_tr_left_m;
 };
 
+struct Vec2
+{
+    float x;
+    float y;
+};
 struct Extent2d
 {
     float min_x;
     float min_y;
     float max_x;
     float max_y;
+
+    bool isPointInside(const Vec2 &pt)
+    {
+        if ((pt.x > min_x) && (pt.y > min_y) && (pt.x < max_x) && (pt.y < max_y))
+            return true;
+        return false;
+    }
+};
+
+std::ostream &operator<<(std::ostream &os, const Extent2d &obj)
+{
+    os << obj.min_x << " " << obj.min_y << " " << obj.max_x << " " << obj.max_y << std::endl;
+    return os;
+}
+
+struct TrackTile
+{
+    std::vector<Vec2> left_bound_inner;
+    std::vector<Vec2> left_bound_outer;
+    std::vector<Vec2> right_bound_inner;
+    std::vector<Vec2> right_bound_outer;
+    Extent2d          tile_extent;
 };
 
 std::vector<std::string> getCSVFilesInDirectory(const std::string &directory_path)
@@ -144,12 +171,10 @@ void centerTrackPointsToWindow(const Extent2d &track_extent,
                                const float     window_height,
                                TrackData      &track_data_points_inout)
 {
-    const float track_width  = track_extent.max_x - track_extent.min_x;
-    const float track_height = track_extent.max_y - track_extent.min_y;
-    // float       scale_factor_x = (track_width > window_width) ? (window_width / track_width) : 1.0;
-    // float       scale_factor_y = (track_height > window_height) ? (window_height / track_height) : 1.0;
-    float scale_factor_x = window_width / track_width;
-    float scale_factor_y = window_height / track_height;
+    const float track_width    = track_extent.max_x - track_extent.min_x;
+    const float track_height   = track_extent.max_y - track_extent.min_y;
+    float       scale_factor_x = window_width / track_width;
+    float       scale_factor_y = window_height / track_height;
     // Scale down a bit more to have some padding on the screen
     constexpr float kScreenFitScale{0.9};
     scale_factor_x *= kScreenFitScale;
@@ -172,16 +197,98 @@ void centerTrackPointsToWindow(const Extent2d &track_extent,
     }
 }
 
+void updateExtent(const std::vector<Vec2> &vec, Extent2d &extent)
+{
+    for (size_t i{0}; i < vec.size(); i++)
+    {
+        const auto pt_x = vec[i].x;
+        const auto pt_y = vec[i].y;
+        if (pt_x < extent.min_x)
+        {
+            extent.min_x = pt_x;
+        }
+        if (pt_x > extent.max_x)
+        {
+            extent.max_x = pt_x;
+        }
+        if (pt_y < extent.min_y)
+        {
+            extent.min_y = pt_y;
+        }
+        if (pt_y > extent.max_y)
+        {
+            extent.max_y = pt_y;
+        }
+    }
+}
+
+std::vector<TrackTile> divideBoundsIntoTiles(const std::vector<Vec2> &left_bound_inner,
+                                             const std::vector<Vec2> &left_bound_outer,
+                                             const std::vector<Vec2> &right_bound_inner,
+                                             const std::vector<Vec2> &right_bound_outer)
+{
+    // Find the extents first
+    Extent2d track_extent{std::numeric_limits<float>::max(),
+                          std::numeric_limits<float>::max(),
+                          -std::numeric_limits<float>::max(),
+                          -std::numeric_limits<float>::max()};
+
+    updateExtent(left_bound_inner, track_extent);
+    updateExtent(left_bound_outer, track_extent);
+    updateExtent(right_bound_inner, track_extent);
+    updateExtent(right_bound_outer, track_extent);
+
+    std::cout << "track extent: " << track_extent << std::endl;
+
+    // Divide the bounding extent into tiles
+    constexpr float kTileLength(200.); // 50 meter tiles
+    size_t          num_tiles_x = std::ceil((track_extent.max_x - track_extent.min_x) / kTileLength);
+    size_t          num_tiles_y = std::ceil((track_extent.max_y - track_extent.min_y) / kTileLength);
+
+    // Find the indices of bound points that lie within a tile
+    std::vector<TrackTile> track_tiles(num_tiles_x * num_tiles_y);
+    for (size_t tile_idx_y{0}; tile_idx_y < num_tiles_y; tile_idx_y++)
+    {
+        for (size_t tile_idx_x{0}; tile_idx_x < num_tiles_x; tile_idx_x++)
+        {
+            size_t tile_idx = tile_idx_x + num_tiles_x * tile_idx_y;
+            // Bounding box of the current tile
+            float    top_left_x = track_extent.min_x + static_cast<float>(tile_idx_x) * kTileLength;
+            float    top_left_y = track_extent.min_y + static_cast<float>(tile_idx_y) * kTileLength;
+            Extent2d tile_extent{top_left_x, top_left_y, top_left_x + kTileLength, top_left_y + kTileLength};
+            track_tiles.at(tile_idx).tile_extent = tile_extent;
+
+            // std::cout << " tile: " << tile_extent << std::endl;
+
+            for (size_t pt_idx{0}; pt_idx < left_bound_inner.size(); pt_idx++)
+            {
+                // All boundaries on the same index must fall within the same tile
+                if (tile_extent.isPointInside(left_bound_inner[pt_idx]) &&
+                    tile_extent.isPointInside(left_bound_outer[pt_idx]) &&
+                    tile_extent.isPointInside(right_bound_inner[pt_idx]) &&
+                    tile_extent.isPointInside(right_bound_outer[pt_idx]))
+                {
+                    track_tiles.at(tile_idx).left_bound_inner.push_back(left_bound_inner[pt_idx]);
+                    track_tiles.at(tile_idx).left_bound_outer.push_back(left_bound_outer[pt_idx]);
+                    track_tiles.at(tile_idx).right_bound_inner.push_back(right_bound_inner[pt_idx]);
+                    track_tiles.at(tile_idx).right_bound_outer.push_back(right_bound_outer[pt_idx]);
+                }
+            }
+            if (!track_tiles.at(tile_idx).right_bound_inner.empty())
+                std::cout << "tile (" << tile_idx_x << ", " << tile_idx_y
+                          << "): " << track_tiles.at(tile_idx).right_bound_inner.size() << std::endl;
+        }
+    }
+
+    return track_tiles;
+}
+
 // Given the track center coordinates and left & right lane widths, calculates the track boundaries on left and right
-void calculateTrackLanes(const TrackData    &track_data_points,
-                         std::vector<float> &left_bound_inner_x,
-                         std::vector<float> &left_bound_inner_y,
-                         std::vector<float> &left_bound_outer_x,
-                         std::vector<float> &left_bound_outer_y,
-                         std::vector<float> &right_bound_inner_x,
-                         std::vector<float> &right_bound_inner_y,
-                         std::vector<float> &right_bound_outer_x,
-                         std::vector<float> &right_bound_outer_y)
+void calculateTrackLanes(const TrackData   &track_data_points,
+                         std::vector<Vec2> &left_bound_inner,
+                         std::vector<Vec2> &left_bound_outer,
+                         std::vector<Vec2> &right_bound_inner,
+                         std::vector<Vec2> &right_bound_outer)
 {
 
     // Find the heading of the line so that we can draw a perpendicular point, lane width away
@@ -201,34 +308,30 @@ void calculateTrackLanes(const TrackData    &track_data_points,
         dy[i] /= mag[i];
     }
 
-    left_bound_inner_x.resize(dx.size());
-    left_bound_inner_y.resize(dx.size());
-    left_bound_outer_x.resize(dx.size());
-    left_bound_outer_y.resize(dx.size());
-    right_bound_inner_x.resize(dx.size());
-    right_bound_inner_y.resize(dx.size());
-    right_bound_outer_x.resize(dx.size());
-    right_bound_outer_y.resize(dx.size());
+    left_bound_inner.resize(dx.size());
+    left_bound_outer.resize(dx.size());
+    right_bound_inner.resize(dx.size());
+    right_bound_outer.resize(dx.size());
 
     constexpr float kBoundaryThickness{1.2F};
 
     // Calculate track boundaries that are perpendicular lane width distance away from track center
     for (size_t i = 0; i < dx.size(); ++i)
     {
-        right_bound_inner_x[i] = track_data_points.x_m[i] + track_data_points.w_tr_right_m[i] * dy[i];
-        right_bound_inner_y[i] = track_data_points.y_m[i] - track_data_points.w_tr_right_m[i] * dx[i];
+        right_bound_inner[i].x = track_data_points.x_m[i] + track_data_points.w_tr_right_m[i] * dy[i];
+        right_bound_inner[i].y = track_data_points.y_m[i] - track_data_points.w_tr_right_m[i] * dx[i];
 
-        left_bound_inner_x[i] = track_data_points.x_m[i] - track_data_points.w_tr_left_m[i] * dy[i];
-        left_bound_inner_y[i] = track_data_points.y_m[i] + track_data_points.w_tr_left_m[i] * dx[i];
+        left_bound_inner[i].x = track_data_points.x_m[i] - track_data_points.w_tr_left_m[i] * dy[i];
+        left_bound_inner[i].y = track_data_points.y_m[i] + track_data_points.w_tr_left_m[i] * dx[i];
 
-        right_bound_outer_x[i] =
+        right_bound_outer[i].x =
             track_data_points.x_m[i] + (track_data_points.w_tr_right_m[i] + kBoundaryThickness) * dy[i];
-        right_bound_outer_y[i] =
+        right_bound_outer[i].y =
             track_data_points.y_m[i] - (track_data_points.w_tr_right_m[i] + kBoundaryThickness) * dx[i];
 
-        left_bound_outer_x[i] =
+        left_bound_outer[i].x =
             track_data_points.x_m[i] - (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dy[i];
-        left_bound_outer_y[i] =
+        left_bound_outer[i].y =
             track_data_points.y_m[i] + (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dx[i];
     }
 }
