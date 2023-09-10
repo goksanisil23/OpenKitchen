@@ -1,8 +1,10 @@
 #pragma once
 
+#include "Driver.hpp"
 #include "race_track_utils.hpp"
 #include "raylib_msgs.h"
 
+#include <algorithm>
 #include <cassert>
 #include <filesystem>
 #include <iomanip>
@@ -11,196 +13,97 @@
 
 #include "raylib-cpp.hpp"
 
-namespace okitch
-{
-constexpr int kScreenWidth  = 1000;
-constexpr int kScreenHeight = 1000;
-
 namespace
 {
+const raylib::Color kDrivableAreaCol{0, 255, 0, 255};
 
-std::vector<Pixel> bresenham(const int &x0, const int &y0, const int &x1, const int &y1)
+inline bool isDrivableAreaPixel(const raylib::Color &pixel_color)
 {
-    std::vector<Pixel> pixels;
-
-    const auto dx = std::abs(x1 - x0);
-    const auto dy = std::abs(y1 - y0);
-
-    auto x = x0;
-    auto y = y0;
-
-    int sx = (x0 > x1) ? -1 : 1;
-    int sy = (y0 > y1) ? -1 : 1;
-
-    if (dx > dy)
-    {
-        auto err = dx / 2.0F;
-        while (x != x1)
-        {
-            pixels.push_back({x, y});
-            err -= dy;
-            if (err < 0.)
-            {
-                y += sy;
-                err += dx;
-            }
-            x += sx;
-        }
-    }
-    else
-    {
-        auto err = dy / 2.0;
-        while (y != y1)
-        {
-            pixels.push_back({x, y});
-            err -= dx;
-            if (err < 0)
-            {
-                x += sx;
-                err += dy;
-            }
-            y += sy;
-        }
-    }
-
-    pixels.push_back({x, y});
-
-    return pixels;
+    if (pixel_color == kDrivableAreaCol)
+        return true;
+    return false;
 }
-
 } // namespace
-class Driver
+
+namespace okitch
 {
-  public:
-    Driver(raylib::Vector2 start_pos, float start_rot) : pos_{start_pos}, rot_{start_rot}
-    {
-    }
-
-    void enableRaycastSensor()
-    {
-        has_raycast_sensor_ = true;
-        // Denser pattern towards the middle
-        for (int i = -90; i <= 90; i += 1)
-        {
-            if (std::abs(i) < 15)
-                sensor_ray_angles_.push_back(static_cast<float>(i));
-            else if (std::abs(i) > 15 && i % 3 == 0)
-                sensor_ray_angles_.push_back(static_cast<float>(i));
-        }
-    }
-
-    // Kinematics update of the driver
-    void update()
-    {
-        constexpr float kLongSpeed = 50.0f;
-        constexpr float kRotSpeed  = 5.0f;
-        // Update
-        if (IsKeyDown(KEY_RIGHT))
-            rot_ += kRotSpeed;
-        if (IsKeyDown(KEY_LEFT))
-            rot_ -= kRotSpeed;
-
-        if (IsKeyDown(KEY_UP))
-        {
-            pos_.x += cos(DEG2RAD * rot_) * kLongSpeed * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * kLongSpeed * GetFrameTime();
-        }
-        else if (IsKeyDown(KEY_DOWN))
-        {
-            pos_.x -= cos(DEG2RAD * rot_) * kLongSpeed * GetFrameTime();
-            pos_.y -= sin(DEG2RAD * rot_) * kLongSpeed * GetFrameTime();
-        }
-    }
-
-    void updateSensor(raylib::Image &render_buffer, std::vector<Vec2d> &hitpoints_out)
-    {
-        if (has_raycast_sensor_)
-        {
-            hitpoints_out.clear();
-            for (const auto angle : sensor_ray_angles_)
-            {
-                const float end_pos_x = 500.F + sensor_range_ * 5.F * cos(DEG2RAD * (rot_ + angle));
-                const float end_pos_y = 500.F + sensor_range_ * 5.F * -sin(DEG2RAD * (rot_ + angle));
-
-                auto pixels_along_ray = okitch::bresenham(500.F, 500.F, end_pos_x, end_pos_y);
-                for (const auto pix : pixels_along_ray)
-                {
-                    Color *pix_color = &((Color *)render_buffer.data)[pix.y * render_buffer.width + pix.x];
-                    if (((pix_color->r == 255) && (pix_color->g == 0) && (pix_color->b == 0)) ||
-                        ((pix_color->r == 0) && (pix_color->g == 0) && (pix_color->b == 255)))
-                    {
-                        // Show hitpoints as white
-                        pix_color->r = 255;
-                        pix_color->g = 255;
-                        pix_color->b = 255;
-                        // Calculate hit point relative to the robot
-                        Vec2d hit_pt_relative;
-                        float xTranslated    = pix.x - 500.F;
-                        float yTranslated    = pix.y - 500.F;
-                        float angleInRadians = rot_ * DEG2RAD; // Convert angle to radians
-                        hit_pt_relative.x    = xTranslated * cos(angleInRadians) - yTranslated * sin(angleInRadians);
-                        hit_pt_relative.y    = xTranslated * sin(angleInRadians) + yTranslated * cos(angleInRadians);
-                        hitpoints_out.push_back(hit_pt_relative);
-                        break;
-                    }
-                    else // drawing ray paths
-                    {
-                        pix_color->r = 100;
-                        pix_color->g = 100;
-                        pix_color->b = 100;
-                    }
-                }
-            }
-        }
-    }
-
-    raylib::Vector2 pos_;
-    float           rot_;
-    raylib::Vector2 size_{1.9, 4.572}; // width/height based on Porsche-911
-
-    bool                has_raycast_sensor_{false};
-    std::vector<float>  sensor_ray_angles_;
-    const raylib::Color ray_color_ = raylib::Color::Magenta();
-    const float         sensor_range_{80.0F};
-};
+const int kScreenWidth  = 1600;
+const int kScreenHeight = 1400;
 
 // Visualization boilerplate class
 class Vis
 {
   public:
-    Vis(const float window_width, const float window_height)
+    Vis()
     {
-        window_ = std::make_unique<raylib::Window>(window_width, window_height, "");
-        window_->SetPosition(20, 20);
+        SetTraceLogLevel(LOG_ERROR);
+
+        window_ = std::make_unique<raylib::Window>(kScreenWidth, kScreenHeight, "");
+        window_->SetPosition(50, 20);
         window_->SetTargetFPS(60);
+
+        // We draw in this texture manner since we want to get pixel values
+        render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);
+    }
+
+    void followDriver()
+    {
+        is_following_driver_ = true;
 
         camera_ = std::make_unique<raylib::Camera2D>();
         camera_->SetZoom(5.F);
-        camera_->SetOffset({window_width / 2, window_height / 2});
+        camera_->SetOffset({kScreenWidth / 2, kScreenHeight / 2});
         camera_->SetRotation(0);
-
-        // We draw in this texture manner since we want to get pixel values
-        render_target_ = LoadRenderTexture(window_width, window_height);
     }
 
-    void activateDrawing(const Driver &driver)
+    void setCameraTarget(const Driver *followed_driver)
     {
-        // Update camera target position to follow the player
-        camera_->SetTarget(driver.pos_);
-        // Begin the drawing mode
+        if (is_following_driver_)
+        {
+            followed_driver_ = followed_driver;
+        }
+    }
+
+    void activateDrawing()
+    {
         render_target_.BeginMode();
-        camera_->BeginMode();
+        // Update camera target position to follow the player
+        if (is_following_driver_)
+        {
+            camera_->SetTarget(followed_driver_->pos_);
+            camera_->BeginMode();
+        }
         window_->ClearBackground(BLACK);
     }
 
-    void drawDriver(const Driver &driver)
+    void drawDriver(Driver &driver, raylib::Image &render_buffer)
     {
-        DrawCircleV(driver.pos_, driver.size_.x, DARKGRAY);
+        raylib::Color   driver_color = (driver.crashed_) ? raylib::Color::Yellow() : raylib::Color::DarkGray();
+        raylib::Vector2 driver_texture_coord{driver.pos_.x, kScreenHeight - driver.pos_.y};
+        render_buffer.DrawCircle(driver_texture_coord, driver.radius_, driver_color);
 
-        // Draw heading line for robot
-        raylib::Vector2 heading_end = {driver.pos_.x + driver.size_.x * cos(DEG2RAD * driver.rot_),
-                                       driver.pos_.y + driver.size_.x * sin(DEG2RAD * driver.rot_)};
-        DrawLineEx(driver.pos_, heading_end, driver.size_.x / 2.F, WHITE);
+        // // Draw heading line for robot
+        raylib::Vector2 heading_end = {driver_texture_coord.x + driver.radius_ * cos(DEG2RAD * driver.rot_),
+                                       driver_texture_coord.y + driver.radius_ * -sin(DEG2RAD * driver.rot_)};
+        render_buffer.DrawLine(driver_texture_coord, heading_end, WHITE);
+    }
+
+    // Check pixels that would be occupied by the outer edge of the robot, whether they instersect track boundaries
+    bool checkDriverCollision(const raylib::Image &render_buffer, const Driver &driver)
+    {
+        raylib::Vector2 driver_texture_coord{driver.pos_.x, kScreenHeight - driver.pos_.y};
+        raylib::Color  *pix_color =
+            &((raylib::Color *)render_buffer.data)[static_cast<int>(driver_texture_coord.y) * render_buffer.width +
+                                                   static_cast<int>(driver_texture_coord.x)];
+        // std::cout << (unsigned)pix_color->r << " " << (unsigned)pix_color->g << " " << (unsigned)pix_color->b << " "
+        //           << std::endl;
+
+        if (isDrivableAreaPixel(*pix_color))
+        {
+            return false;
+        }
+        std::cerr << "DRIVER " << driver.id_ << " CRASHED!" << std::endl;
+        return true;
     }
 
     void enableImageSaving(const std::string &image_save_dir)
@@ -230,7 +133,10 @@ class Vis
     {
         static size_t ctr{0};
 
-        camera_->EndMode();
+        if (is_following_driver_)
+        {
+            camera_->EndMode();
+        }
         render_target_.EndMode();
         ctr++;
         if (enable_img_saving_)
@@ -305,10 +211,15 @@ class Vis
     std::unique_ptr<raylib::Window>   window_;
     raylib::RenderTexture             render_target_;
     raylib::Image                     current_frame_;
-    bool                              enable_img_saving_{false};
-    const size_t                      img_saving_period_{1};
-    bool                              enable_img_sharing_{false};
-    std::string                       image_save_dir_{};
+
+    Driver const *followed_driver_{nullptr};
+
+    bool is_following_driver_{false};
+    bool enable_img_saving_{false};
+    bool enable_img_sharing_{false};
+
+    const size_t img_saving_period_{1};
+    std::string  image_save_dir_{};
 
     // Q<ImageMsg<kScreenWidth, kScreenHeight>, 4> *q_; // shared memory object
 };

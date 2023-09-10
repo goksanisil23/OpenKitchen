@@ -175,15 +175,17 @@ void centerTrackPointsToWindow(const Extent2d &track_extent,
     const float track_height   = track_extent.max_y - track_extent.min_y;
     float       scale_factor_x = window_width / track_width;
     float       scale_factor_y = window_height / track_height;
+    float       scale_factor   = std::min(scale_factor_x, scale_factor_y);
     // Scale down a bit more to have some padding on the screen
     constexpr float kScreenFitScale{0.9};
-    scale_factor_x *= kScreenFitScale;
-    scale_factor_y *= kScreenFitScale;
+    scale_factor *= kScreenFitScale;
 
     for (size_t i{}; i < track_data_points_inout.x_m.size(); i++)
     {
-        track_data_points_inout.x_m[i] *= scale_factor_x;
-        track_data_points_inout.y_m[i] *= scale_factor_y;
+        track_data_points_inout.x_m[i] *= scale_factor;
+        track_data_points_inout.y_m[i] *= scale_factor;
+        track_data_points_inout.w_tr_left_m[i] *= scale_factor;
+        track_data_points_inout.w_tr_right_m[i] *= scale_factor;
     }
 
     // Find the extents of the scaled track
@@ -313,7 +315,7 @@ void calculateTrackLanes(const TrackData   &track_data_points,
     right_bound_inner.resize(dx.size());
     right_bound_outer.resize(dx.size());
 
-    constexpr float kBoundaryThickness{1.2F};
+    constexpr float kBoundaryThickness{5.F};
 
     // Calculate track boundaries that are perpendicular lane width distance away from track center
     for (size_t i = 0; i < dx.size(); ++i)

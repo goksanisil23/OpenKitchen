@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/home/s0001734/Downloads/raylib-cpp/include",
                 "/home/s0001734/Downloads/onnxruntime-linux-x64-gpu-1.15.1/include",
-                "/usr/include/opencv4"
+                "/usr/include/opencv4",
+                "/opt/CLI11"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
