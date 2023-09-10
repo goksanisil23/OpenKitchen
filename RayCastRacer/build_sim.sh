@@ -7,8 +7,11 @@ export RAYLIB_LINK_DIR="/home/s0001734/Downloads/raylib-cpp/build/_deps/raylib-b
 export OKITCH_UTILS_DIR="/home/s0001734/Downloads/OpenKitchen/Utilities"
 export SHARED_MEM_LIB_DIR="/home/s0001734/Downloads/OpenKitchen/SharedMemory"
 
-g++ -o env_sim env_sim.cpp \
--isystem $RAYLIB_CPP_INCLUDE_DIR -I $RAYLIB_INCLUDE_DIR -I $OKITCH_UTILS_DIR -I . -I $SHARED_MEM_LIB_DIR -L $RAYLIB_LINK_DIR -lraylib \
+export CLI11_DIR="/opt/CLI11"
+
+g++ --std=c++17 -o env_sim env_sim.cpp \
+-isystem $RAYLIB_CPP_INCLUDE_DIR -I $RAYLIB_INCLUDE_DIR -I $OKITCH_UTILS_DIR -I . -I $SHARED_MEM_LIB_DIR \
+-L $RAYLIB_LINK_DIR -lraylib \
 -Wall -std=c++17 -O2 -ldl -pthread -lrt
 
 
