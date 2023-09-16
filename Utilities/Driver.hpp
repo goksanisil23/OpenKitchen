@@ -13,7 +13,10 @@ namespace
 
 const raylib::Color kLeftBoudaryCol{255, 0, 0, 255};
 const raylib::Color kLRightBoudaryCol{0, 0, 255, 255};
-constexpr bool      kDrawSensorRays{true};
+constexpr bool      kDrawSensorRays{false};
+
+constexpr float    kDeltaStandstillLimit{0.00001F}; // displacement threshold used to indicate an agent is standstill
+constexpr uint32_t kStandstillTimeout{200}; // # of consecutive standstill iterations after which we reset the episode
 
 std::vector<Pixel> bresenham(const int &x0, const int &y0, const int &x1, const int &y1)
 {
@@ -141,36 +144,38 @@ class Driver
         }
     }
 
-    void updateAutoControl(const bool accelerate, const bool decelerate, const bool turn_left, const bool turn_right)
+    void updateAutoControl(const float acceleration_delta, const float steering_delta)
     {
         constexpr float kSpeedLimit{100.F};
 
         if (auto_control_enabled_)
         {
-            if (turn_right)
-            {
-                rot_ += kRotSpeed;
-            }
-            else if (turn_left)
-            {
-                rot_ -= kRotSpeed;
-            }
+            rot_ += steering_delta;
 
-            if (accelerate)
-            {
-                speed_ += kAccInc;
-            }
-            else if (decelerate)
-            {
-                speed_ -= kAccInc;
-            }
+            acceleration_ += acceleration_delta;
+            speed_ += (acceleration_ * GetFrameTime());
 
             speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
             speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
-            std::cout << "robot: " << id_ << " speed: " << speed_ << std::endl;
+            // std::cout << "robot: " << id_ << " speed: " << speed_ << " rot: " << rot_ << std::endl;
 
-            pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+            float delta_x = cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
+            pos_.x += delta_x;
+            float delta_y = sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+            pos_.y += delta_y;
+
+            if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
+            {
+                standstill_ctr_++;
+                if (standstill_ctr_ > kStandstillTimeout)
+                {
+                    standstill_timed_out_ = true;
+                }
+            }
+            else
+            {
+                standstill_ctr_ = 0;
+            }
         }
     }
 
@@ -226,15 +231,19 @@ class Driver
 
     void reset(const raylib::Vector2 &reset_pos, const float reset_rot)
     {
-        pos_   = reset_pos;
-        rot_   = reset_rot;
-        speed_ = 0.F;
+        pos_          = reset_pos;
+        rot_          = reset_rot;
+        acceleration_ = 0.F;
+        speed_        = 0.F;
 
-        crashed_ = false;
+        crashed_              = false;
+        standstill_timed_out_ = false;
+        standstill_ctr_       = 0;
     }
 
     raylib::Vector2 pos_{};
     float           speed_{};
+    float           acceleration_{};
     float           rot_{};
     float           radius_{9.0F};
     int16_t         id_{};
@@ -248,7 +257,9 @@ class Driver
     const raylib::Color ray_color_ = raylib::Color::Magenta();
     float               sensor_range_{80.0F};
 
-    bool crashed_{false};
+    bool     crashed_{false};
+    bool     standstill_timed_out_{false};
+    uint32_t standstill_ctr_{0};
 
     static constexpr float kAccInc   = 5.0f;
     static constexpr float kRotSpeed = 5.0f;

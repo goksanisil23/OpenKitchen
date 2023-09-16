@@ -15,6 +15,11 @@ struct Vec2d
 {
     float x{};
     float y{};
+
+    float norm() const
+    {
+        return std::sqrt(x * x + y * y);
+    }
 };
 
 template <size_t WIDTH, size_t HEIGHT>
