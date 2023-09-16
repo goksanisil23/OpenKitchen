@@ -102,7 +102,6 @@ class Vis
         {
             return false;
         }
-        std::cerr << "DRIVER " << driver.id_ << " CRASHED!" << std::endl;
         return true;
     }
 

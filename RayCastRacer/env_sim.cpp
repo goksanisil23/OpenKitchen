@@ -12,6 +12,23 @@ constexpr int16_t kNumDrivers{3};
 constexpr int16_t kNumGenerations{100}; // number of generations
 constexpr size_t  kStartingIdx{0};      // along which point on the track to start
 
+bool shouldResetEpisode(const std::vector<okitch::Driver> &drivers)
+{
+    size_t num_drv_crashed{0};
+    for (const auto &driver : drivers)
+    {
+        if (driver.crashed_)
+        {
+            num_drv_crashed++;
+        }
+    }
+    if (num_drv_crashed == drivers.size())
+    {
+        return true;
+    }
+    return false;
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -46,19 +63,25 @@ int main(int argc, char **argv)
     }
 
     std::vector<std::vector<okitch::Vec2d>> sensor_hits(drivers.size());
-    std::vector<evo_driver::EvoController>  driver_controls(drivers.size());
+    std::vector<evo_driver::EvoController>  driver_controllers(drivers.size());
     auto sensor_msg_shm_q = shmmap<okitch::Laser2dMsg<100>, 4>("laser_msgs"); // shared memory object
     assert(sensor_msg_shm_q);
 
     bool reset_generation = false;
 
+    uint32_t episode_idx{0};
     while (!WindowShouldClose())
     {
         if (reset_generation)
         {
-            for (auto &driver : drivers)
+            std::cout << "------------ EPISODE " << episode_idx << " ---------------" << std::endl;
+            episode_idx++;
+            // Mate the drivers before resetting
+            evo_driver::chooseAndMateAgents(driver_controllers);
+
+            for (int16_t i{0}; i < kNumDrivers; i++)
             {
-                driver.reset({track_data_points.x_m[kStartingIdx], track_data_points.y_m[kStartingIdx]}, -90.F);
+                drivers[i].reset({track_data_points.x_m[kStartingIdx], track_data_points.y_m[kStartingIdx]}, -90.F);
             }
 
             reset_generation = false;
@@ -68,11 +91,19 @@ int main(int argc, char **argv)
         {
             if (!drivers[i].crashed_)
             {
-                drivers[i].updateManualControl();
-                drivers[i].updateAutoControl(driver_controls[i].controls.accelerate,
-                                             driver_controls[i].controls.decelerate,
-                                             driver_controls[i].controls.turn_left,
-                                             driver_controls[i].controls.turn_right);
+                // drivers[i].updateManualControl();
+                drivers[i].updateAutoControl(driver_controllers[i].controls_.acceleration_delta,
+                                             driver_controllers[i].controls_.steering_delta);
+                // increase the score for every step of the episode agent has not crashed
+                if (drivers[i].standstill_timed_out_)
+                {
+                    driver_controllers[i].score_ = 0;
+                    drivers[i].crashed_          = true;
+                }
+                else
+                {
+                    driver_controllers[i].score_++;
+                }
             }
         }
         visualizer.activateDrawing();
@@ -90,7 +121,8 @@ int main(int argc, char **argv)
             // We first check the collision before drawing any sensor or drivers to avoid overlap
             for (auto &driver : drivers)
             {
-                driver.crashed_ = visualizer.checkDriverCollision(render_buffer, driver);
+                if (!driver.crashed_)
+                    driver.crashed_ = visualizer.checkDriverCollision(render_buffer, driver);
             }
             for (size_t i{0}; i < drivers.size(); i++)
             {
@@ -105,19 +137,11 @@ int main(int argc, char **argv)
 
         for (int16_t i{0}; i < kNumDrivers; i++)
         {
-            driver_controls[i].update(sensor_hits[i]);
+            driver_controllers[i].updateAction(drivers[i].speed_, drivers[i].rot_, sensor_hits[i]);
         }
 
         // If all the robots have crashed, reset the generation
-        for (const auto &driver : drivers)
-        {
-            if (!driver.crashed_)
-            {
-                break;
-            }
-            reset_generation = true;
-            // executeMating(drivers);
-        }
+        reset_generation = shouldResetEpisode(drivers);
 
         // Send the sensor readings over shared mem
         // sensor_msg_shm_q->write(
