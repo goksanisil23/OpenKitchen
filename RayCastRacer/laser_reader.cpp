@@ -48,8 +48,10 @@ int main(int argc, char **argv)
         ClearBackground(RAYWHITE);
         for (size_t i = 0; i < msg->size; ++i)
         {
+            std::cout << msg->data[i].norm() << " ";
             DrawCircleV({msg->data[i].x + screenWidth / 2.F, msg->data[i].y + screenHeight / 2.F}, 3, DARKGRAY);
         }
+        std::cout << "\n--------------------" << std::endl;
         EndDrawing();
     }
     CloseWindow();

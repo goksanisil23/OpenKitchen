@@ -20,6 +20,11 @@ struct Vec2d
     {
         return std::sqrt(x * x + y * y);
     }
+
+    float distanceSquared(const Vec2d &other) const
+    {
+        return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y);
+    }
 };
 
 template <size_t WIDTH, size_t HEIGHT>
