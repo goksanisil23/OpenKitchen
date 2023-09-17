@@ -15,6 +15,7 @@ const raylib::Color kLeftBoudaryCol{255, 0, 0, 255};
 const raylib::Color kLRightBoudaryCol{0, 0, 255, 255};
 constexpr bool      kDrawSensorRays{false};
 
+constexpr float    kSensorRange{200.F};
 constexpr float    kDeltaStandstillLimit{0.00001F}; // displacement threshold used to indicate an agent is standstill
 constexpr uint32_t kStandstillTimeout{200}; // # of consecutive standstill iterations after which we reset the episode
 
@@ -83,14 +84,14 @@ class Driver
     Driver(raylib::Vector2 start_pos, float start_rot, int16_t id, const bool is_cam_following)
         : pos_{start_pos}, rot_{start_rot}, id_{id}, is_cam_following_{is_cam_following}
     {
-        if (is_cam_following)
-        {
-            sensor_range_ = 80.F;
-        }
-        else
-        {
-            sensor_range_ = 20.F;
-        }
+        // if (is_cam_following)
+        // {
+        //     sensor_range_ = 80.F;
+        // }
+        // else
+        // {
+        //     sensor_range_ = 20.F;
+        // }
     }
 
     void enableRaycastSensor()
@@ -99,9 +100,11 @@ class Driver
         // Denser pattern towards the middle
         for (int i = -70; i <= 70; i += 1)
         {
-            if (std::abs(i) < 15)
-                sensor_ray_angles_.push_back(static_cast<float>(i));
-            else if (std::abs(i) > 15 && i % 3 == 0)
+            // if (std::abs(i) < 15)
+            //     sensor_ray_angles_.push_back(static_cast<float>(i));
+            // else if (std::abs(i) > 15 && i % 3 == 0)
+            //     sensor_ray_angles_.push_back(static_cast<float>(i));
+            if (i % 10 == 0)
                 sensor_ray_angles_.push_back(static_cast<float>(i));
         }
     }
@@ -155,8 +158,10 @@ class Driver
             acceleration_ += acceleration_delta;
             speed_ += (acceleration_ * GetFrameTime());
 
-            speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
+            // speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
+            speed_ = (speed_ < 0) ? 0 : speed_;
             speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
+
             // std::cout << "robot: " << id_ << " speed: " << speed_ << " rot: " << rot_ << std::endl;
 
             float delta_x = cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
@@ -182,6 +187,7 @@ class Driver
     void updateSensor(raylib::Image &render_buffer, std::vector<Vec2d> &hitpoints_out)
     {
         float ray_start_x, ray_start_y;
+        float drv_rot_rad = rot_ * DEG2RAD; // Convert angle to radians
         if (is_cam_following_)
         {
             ray_start_x = kScreenWidth / 2.F + radius_ * cos(DEG2RAD * rot_);
@@ -197,10 +203,11 @@ class Driver
             hitpoints_out.clear();
             for (const auto angle : sensor_ray_angles_)
             {
-                const float end_pos_x = ray_start_x + sensor_range_ * 5.F * cos(DEG2RAD * (rot_ + angle));
-                const float end_pos_y = ray_start_y + sensor_range_ * 5.F * -sin(DEG2RAD * (rot_ + angle));
+                const float end_pos_x = ray_start_x + sensor_range_ * cos(DEG2RAD * (rot_ + angle));
+                const float end_pos_y = ray_start_y + sensor_range_ * -sin(DEG2RAD * (rot_ + angle));
 
                 auto pixels_along_ray = okitch::bresenham(ray_start_x, ray_start_y, end_pos_x, end_pos_y);
+                bool hit_found{false};
                 for (const auto pix : pixels_along_ray)
                 {
                     // We check for the sensor hit based on the boundaries which are determined by the color
@@ -210,12 +217,12 @@ class Driver
                     {
                         // Calculate hit point relative to the robot
                         Vec2d hit_pt_relative;
-                        float xTranslated    = pix.x - ray_start_x;
-                        float yTranslated    = pix.y - ray_start_y;
-                        float angleInRadians = rot_ * DEG2RAD; // Convert angle to radians
-                        hit_pt_relative.x    = xTranslated * cos(angleInRadians) - yTranslated * sin(angleInRadians);
-                        hit_pt_relative.y    = xTranslated * sin(angleInRadians) + yTranslated * cos(angleInRadians);
+                        float xTranslated = pix.x - ray_start_x;
+                        float yTranslated = pix.y - ray_start_y;
+                        hit_pt_relative.x = xTranslated * cos(drv_rot_rad) - yTranslated * sin(drv_rot_rad);
+                        hit_pt_relative.y = xTranslated * sin(drv_rot_rad) + yTranslated * cos(drv_rot_rad);
                         hitpoints_out.push_back(hit_pt_relative);
+                        hit_found = true;
                         break;
                     }
                     else if (kDrawSensorRays) // drawing ray paths
@@ -224,6 +231,15 @@ class Driver
                         pix_color->g = 100;
                         pix_color->b = 100;
                     }
+                }
+                if (!hit_found) // If no hit is found, instead of no return, we report the max range
+                {
+                    Vec2d max_range_pt_relative;
+                    float xTranslated       = end_pos_x - ray_start_x;
+                    float yTranslated       = end_pos_y - ray_start_y;
+                    max_range_pt_relative.x = xTranslated * cos(drv_rot_rad) - yTranslated * sin(drv_rot_rad);
+                    max_range_pt_relative.y = xTranslated * sin(drv_rot_rad) + yTranslated * cos(drv_rot_rad);
+                    hitpoints_out.push_back(max_range_pt_relative);
                 }
             }
         }
@@ -242,9 +258,9 @@ class Driver
     }
 
     raylib::Vector2 pos_{};
-    float           speed_{};
-    float           acceleration_{};
-    float           rot_{};
+    float           speed_{0.F};
+    float           acceleration_{0.F};
+    float           rot_{0.F};
     float           radius_{9.0F};
     int16_t         id_{};
 
@@ -255,7 +271,7 @@ class Driver
 
     std::vector<float>  sensor_ray_angles_;
     const raylib::Color ray_color_ = raylib::Color::Magenta();
-    float               sensor_range_{80.0F};
+    float               sensor_range_{kSensorRange};
 
     bool     crashed_{false};
     bool     standstill_timed_out_{false};

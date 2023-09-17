@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 
+#include "raylib_msgs.h"
+
 namespace race_track_gen
 {
 struct TrackData
@@ -19,11 +21,6 @@ struct TrackData
     std::vector<float> w_tr_left_m;
 };
 
-struct Vec2
-{
-    float x;
-    float y;
-};
 struct Extent2d
 {
     float min_x;
@@ -31,7 +28,7 @@ struct Extent2d
     float max_x;
     float max_y;
 
-    bool isPointInside(const Vec2 &pt)
+    bool isPointInside(const okitch::Vec2d &pt)
     {
         if ((pt.x > min_x) && (pt.y > min_y) && (pt.x < max_x) && (pt.y < max_y))
             return true;
@@ -47,11 +44,11 @@ std::ostream &operator<<(std::ostream &os, const Extent2d &obj)
 
 struct TrackTile
 {
-    std::vector<Vec2> left_bound_inner;
-    std::vector<Vec2> left_bound_outer;
-    std::vector<Vec2> right_bound_inner;
-    std::vector<Vec2> right_bound_outer;
-    Extent2d          tile_extent;
+    std::vector<okitch::Vec2d> left_bound_inner;
+    std::vector<okitch::Vec2d> left_bound_outer;
+    std::vector<okitch::Vec2d> right_bound_inner;
+    std::vector<okitch::Vec2d> right_bound_outer;
+    Extent2d                   tile_extent;
 };
 
 std::vector<std::string> getCSVFilesInDirectory(const std::string &directory_path)
@@ -199,7 +196,7 @@ void centerTrackPointsToWindow(const Extent2d &track_extent,
     }
 }
 
-void updateExtent(const std::vector<Vec2> &vec, Extent2d &extent)
+void updateExtent(const std::vector<okitch::Vec2d> &vec, Extent2d &extent)
 {
     for (size_t i{0}; i < vec.size(); i++)
     {
@@ -224,10 +221,10 @@ void updateExtent(const std::vector<Vec2> &vec, Extent2d &extent)
     }
 }
 
-std::vector<TrackTile> divideBoundsIntoTiles(const std::vector<Vec2> &left_bound_inner,
-                                             const std::vector<Vec2> &left_bound_outer,
-                                             const std::vector<Vec2> &right_bound_inner,
-                                             const std::vector<Vec2> &right_bound_outer)
+std::vector<TrackTile> divideBoundsIntoTiles(const std::vector<okitch::Vec2d> &left_bound_inner,
+                                             const std::vector<okitch::Vec2d> &left_bound_outer,
+                                             const std::vector<okitch::Vec2d> &right_bound_inner,
+                                             const std::vector<okitch::Vec2d> &right_bound_outer)
 {
     // Find the extents first
     Extent2d track_extent{std::numeric_limits<float>::max(),
@@ -286,11 +283,11 @@ std::vector<TrackTile> divideBoundsIntoTiles(const std::vector<Vec2> &left_bound
 }
 
 // Given the track center coordinates and left & right lane widths, calculates the track boundaries on left and right
-void calculateTrackLanes(const TrackData   &track_data_points,
-                         std::vector<Vec2> &left_bound_inner,
-                         std::vector<Vec2> &left_bound_outer,
-                         std::vector<Vec2> &right_bound_inner,
-                         std::vector<Vec2> &right_bound_outer)
+void calculateTrackLanes(const TrackData            &track_data_points,
+                         std::vector<okitch::Vec2d> &left_bound_inner,
+                         std::vector<okitch::Vec2d> &left_bound_outer,
+                         std::vector<okitch::Vec2d> &right_bound_inner,
+                         std::vector<okitch::Vec2d> &right_bound_outer)
 {
 
     // Find the heading of the line so that we can draw a perpendicular point, lane width away

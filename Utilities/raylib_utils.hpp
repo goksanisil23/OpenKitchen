@@ -13,9 +13,14 @@
 
 #include "raylib-cpp.hpp"
 
-namespace
+namespace okitch
 {
+const int kScreenWidth  = 1600;
+const int kScreenHeight = 1400;
+
 const raylib::Color kDrivableAreaCol{0, 255, 0, 255};
+const raylib::Color kLeftBarrierCol{255, 0, 0, 255};
+const raylib::Color kRightBarrierCol{0, 0, 255, 255};
 
 inline bool isDrivableAreaPixel(const raylib::Color &pixel_color)
 {
@@ -23,12 +28,13 @@ inline bool isDrivableAreaPixel(const raylib::Color &pixel_color)
         return true;
     return false;
 }
-} // namespace
 
-namespace okitch
+inline bool isBarrierPixel(const raylib::Color &pixel_color)
 {
-const int kScreenWidth  = 1600;
-const int kScreenHeight = 1400;
+    if ((pixel_color == kLeftBarrierCol) || (pixel_color == kRightBarrierCol))
+        return true;
+    return false;
+}
 
 // Visualization boilerplate class
 class Vis
@@ -81,6 +87,8 @@ class Vis
         raylib::Color   driver_color = (driver.crashed_) ? raylib::Color::Yellow() : raylib::Color::DarkGray();
         raylib::Vector2 driver_texture_coord{driver.pos_.x, kScreenHeight - driver.pos_.y};
         render_buffer.DrawCircle(driver_texture_coord, driver.radius_, driver_color);
+        render_buffer.DrawText(
+            std::to_string(driver.id_), {driver_texture_coord.x - 15, driver_texture_coord.y}, 14, BLACK);
 
         // // Draw heading line for robot
         raylib::Vector2 heading_end = {driver_texture_coord.x + driver.radius_ * cos(DEG2RAD * driver.rot_),
@@ -98,11 +106,12 @@ class Vis
         // std::cout << (unsigned)pix_color->r << " " << (unsigned)pix_color->g << " " << (unsigned)pix_color->b << " "
         //           << std::endl;
 
-        if (isDrivableAreaPixel(*pix_color))
+        // if (isDrivableAreaPixel(*pix_color))
+        if (isBarrierPixel(*pix_color))
         {
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     void enableImageSaving(const std::string &image_save_dir)
@@ -248,9 +257,9 @@ float crossProduct(raylib::Vector2 v1, raylib::Vector2 v2)
     return v1.x * v2.y - v1.y * v2.x;
 }
 
-void shadeAreaBetweenCurves(const std::vector<race_track_gen::Vec2> &curve_1,
-                            const std::vector<race_track_gen::Vec2> &curve_2,
-                            const raylib::Color                      color)
+void shadeAreaBetweenCurves(const std::vector<okitch::Vec2d> &curve_1,
+                            const std::vector<okitch::Vec2d> &curve_2,
+                            const raylib::Color               color)
 {
     // We're shading 2 triangles that make up a trapezoid per iteration here.
     for (size_t i = 0; i < curve_1.size() - 1; ++i)
@@ -287,6 +296,28 @@ void shadeAreaBetweenCurves(const std::vector<race_track_gen::Vec2> &curve_1,
             DrawTriangle(v2, v3, v4, color);
         }
     }
+}
+
+void drawLoadBar(const int32_t start_x,
+                 const int32_t start_y,
+                 const float   acceleration_delta,
+                 const int32_t bar_length,
+                 const bool    active)
+{
+    DrawRectangle(start_x, start_y, bar_length, 12, LIGHTGRAY);
+    if (active)
+    {
+        if (acceleration_delta > 0.F)
+        {
+            DrawRectangle(start_x + bar_length / 2.f, start_y, (bar_length / 3.f), 12, BLUE);
+        }
+        else
+        {
+            DrawRectangle(start_x + bar_length / 2.f - (bar_length / 3.f), start_y, (bar_length / 3.f), 12, RED);
+        }
+    }
+
+    DrawRectangleLines(start_x, start_y, bar_length, 12, GRAY);
 }
 
 } // namespace okitch
