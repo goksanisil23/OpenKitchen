@@ -87,8 +87,8 @@ class Vis
         raylib::Color   driver_color = (driver.crashed_) ? raylib::Color::Yellow() : raylib::Color::DarkGray();
         raylib::Vector2 driver_texture_coord{driver.pos_.x, kScreenHeight - driver.pos_.y};
         render_buffer.DrawCircle(driver_texture_coord, driver.radius_, driver_color);
-        render_buffer.DrawText(
-            std::to_string(driver.id_), {driver_texture_coord.x - 15, driver_texture_coord.y}, 14, BLACK);
+        // render_buffer.DrawText(
+        //     std::to_string(driver.id_), {driver_texture_coord.x - 15 * driver.id_, driver_texture_coord.y}, 14, BLACK);
 
         // // Draw heading line for robot
         raylib::Vector2 heading_end = {driver_texture_coord.x + driver.radius_ * cos(DEG2RAD * driver.rot_),

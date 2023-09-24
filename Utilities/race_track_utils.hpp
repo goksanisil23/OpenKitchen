@@ -119,10 +119,10 @@ void getTrackDataFromCsv(const std::string &filename, TrackData &data_points_out
         data_points_out.y_m.push_back(std::stof(token));
 
         std::getline(iss, token, ',');
-        data_points_out.w_tr_right_m.push_back(std::stof(token));
+        data_points_out.w_tr_right_m.push_back(std::stof(token) * 3);
 
         std::getline(iss, token, ',');
-        data_points_out.w_tr_left_m.push_back(std::stof(token));
+        data_points_out.w_tr_left_m.push_back(std::stof(token) * 3);
     }
 
     file.close();
@@ -287,7 +287,8 @@ void calculateTrackLanes(const TrackData            &track_data_points,
                          std::vector<okitch::Vec2d> &left_bound_inner,
                          std::vector<okitch::Vec2d> &left_bound_outer,
                          std::vector<okitch::Vec2d> &right_bound_inner,
-                         std::vector<okitch::Vec2d> &right_bound_outer)
+                         std::vector<okitch::Vec2d> &right_bound_outer,
+                         float                      &init_heading)
 {
 
     // Find the heading of the line so that we can draw a perpendicular point, lane width away
@@ -333,6 +334,8 @@ void calculateTrackLanes(const TrackData            &track_data_points,
         left_bound_outer[i].y =
             track_data_points.y_m[i] + (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dx[i];
     }
+
+    init_heading = std::atan2(dy[0], dx[0]) * 180.0F / M_PI;
 }
 
 } // namespace race_track_gen

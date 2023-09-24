@@ -150,23 +150,22 @@ class Driver
     void updateAutoControl(const float acceleration_delta, const float steering_delta)
     {
         constexpr float kSpeedLimit{100.F};
+        constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
 
         if (auto_control_enabled_)
         {
             rot_ += steering_delta;
 
             acceleration_ += acceleration_delta;
-            speed_ += (acceleration_ * GetFrameTime());
+            speed_ += (acceleration_ * kDt);
 
             // speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
             speed_ = (speed_ < 0) ? 0 : speed_;
             speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
 
-            // std::cout << "robot: " << id_ << " speed: " << speed_ << " rot: " << rot_ << std::endl;
-
-            float delta_x = cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
+            float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
             pos_.x += delta_x;
-            float delta_y = sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+            float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
             pos_.y += delta_y;
 
             if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
