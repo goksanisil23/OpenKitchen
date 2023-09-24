@@ -28,8 +28,42 @@ class EvoController
         nn_ = std::move(nn);
     }
 
+    void resetAction()
+    {
+        controls_ = EvoControls();
+    }
+
     // Used when all agents are created initially, with randomized weights
     EvoController() = default;
+
+    void updateAction2(const float speed, const float rotation, const std::vector<okitch::Vec2d> &sensor_meas)
+    {
+        // for (const auto mes : sensor_meas)
+        // {
+        //     std::cout << mes.y << " ";
+        // }
+        // std::cout << std::endl;
+
+        float sum_x{0.F};
+        float sum_y{0.F};
+        for (auto const meas : sensor_meas)
+        {
+            sum_x += meas.x;
+        }
+        for (auto const meas : sensor_meas)
+        {
+            sum_y += meas.y;
+        }
+
+        if (sum_x > 0.)
+            controls_.acceleration_delta = 0.5;
+        else
+            controls_.acceleration_delta = 0.3;
+        if (sum_y > 0.)
+            controls_.steering_delta = .3;
+        else
+            controls_.steering_delta = -.3;
+    }
 
     void updateAction(const float speed, const float rotation, const std::vector<okitch::Vec2d> &sensor_meas)
     {
