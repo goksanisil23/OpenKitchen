@@ -12,7 +12,7 @@
 
 constexpr int16_t kNumDrivers{25};
 constexpr int16_t kNumGenerations{100}; // number of generations
-constexpr size_t  kStartingIdx{1};      // along which point on the track to start
+constexpr size_t  kStartingIdx{3};      // along which point on the track to start
 
 bool shouldResetEpisode(const std::vector<okitch::Driver> &drivers)
 {
@@ -54,8 +54,37 @@ void assignScores(const std::vector<okitch::Driver>      &drivers,
                   const race_track_gen::TrackData        &track_data_points,
                   std::vector<evo_driver::EvoController> &driver_controllers)
 {
+    // static std::vector<raylib::Vector2> prev_positions(drivers.size());
+    // static int                          ctr{0};
+    // if (ctr == 0)
+    // {
+    //     for (size_t i{0}; i < drivers.size(); i++)
+    //     {
+    //         prev_positions[i].x = drivers[i].pos_.x;
+    //         prev_positions[i].y = drivers[i].pos_.y;
+    //     }
+    // }
+    // else
+    // {
+    //     for (size_t i{0}; i < drivers.size(); i++)
+    //     {
+    //         raylib::Vector2 diff = drivers[i].pos_ - prev_positions[i];
+    //         std::cout << i << " prev: " << prev_positions[i].x << " " << prev_positions[i].y
+    //                   << " curr: " << drivers[i].pos_.x << " " << drivers[i].pos_.y << std::endl;
+    //         if (diff.Length() > 0.F)
+    //         {
+    //             std::string error_string{"diff: " + std::to_string(diff.Length())};
+    //             throw std::runtime_error(error_string);
+    //         }
+    //         prev_positions[i].x = drivers[i].pos_.x;
+    //         prev_positions[i].y = drivers[i].pos_.y;
+    //     }
+    // }
+    // ctr++;
+
     for (size_t i{0}; i < drivers.size(); i++)
     {
+        // std::cout << "agent " << i << " pos: " << drivers[i].pos_.x << " " << drivers[i].pos_.y << std::endl;
         auto nearest_track_idx =
             findNearestTrackIndexBruteForce(track_data_points, {drivers[i].pos_.x, drivers[i].pos_.y});
         driver_controllers[i].score_ = static_cast<float>(nearest_track_idx);
@@ -133,10 +162,10 @@ void saveBestAgentNetwork(const std::vector<evo_driver::EvoController> &driver_c
 
     if (prev_gen_best_score > best_score_current)
     {
-        std::string error_string{"Current gen. high score " + std::to_string(best_score_current) +
-                                 "is less than previous gen. high score " + std::to_string(prev_gen_best_score)};
-        // throw std::runtime_error(error_string);
-        std::cerr << error_string << std::endl;
+        std::string error_string{"!! Current gen. high score " + std::to_string(best_score_current) +
+                                 " is less than previous gen. high score " + std::to_string(prev_gen_best_score)};
+        throw std::runtime_error(error_string);
+        // std::cerr << error_string << std::endl;
     }
     prev_gen_best_score = best_score_current;
 
@@ -212,6 +241,7 @@ int main(int argc, char **argv)
             colony_avg_scores.emplace_back(getAvgColonyScore(driver_controllers));
             showColonyScore(colony_avg_scores);
             episode_idx++;
+
             // Mate the drivers before resetting
             evo_driver::chooseAndMateAgents(driver_controllers);
 
@@ -219,11 +249,13 @@ int main(int argc, char **argv)
             {
                 drivers[i].reset({track_data_points.x_m[kStartingIdx], track_data_points.y_m[kStartingIdx]},
                                  starting_angle_deg);
+                driver_controllers[i].resetAction();
             }
 
             reset_generation = false;
         }
 
+        // -------- Kinematics Update of Agents -------- //
         for (int16_t i{0}; i < kNumDrivers; i++)
         {
             if (!drivers[i].crashed_)
