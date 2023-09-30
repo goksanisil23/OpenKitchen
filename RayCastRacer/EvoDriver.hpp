@@ -28,9 +28,12 @@ class EvoController
         nn_ = std::move(nn);
     }
 
-    void resetAction()
+    void reset()
     {
         controls_ = EvoControls();
+        score_    = 0;
+        actions_history_.clear();
+        meas_history_.clear();
     }
 
     // Used when all agents are created initially, with randomized weights
@@ -138,11 +141,9 @@ class EvoController
 
         controls_.acceleration_delta = acceleration_delta;
         controls_.steering_delta     = steering_delta;
-    }
 
-    void setScore(const size_t iters_before_crash)
-    {
-        score_ += static_cast<float>(iters_before_crash);
+        actions_history_.push_back(controls_);
+        meas_history_.push_back(sensor_meas);
     }
 
   public:
@@ -150,8 +151,97 @@ class EvoController
     Network                                 nn_;
     float                                   score_{0.F};
     std::array<float, Network::kOutputSize> nn_output_;
+    std::vector<EvoControls>                actions_history_;
+    std::vector<std::vector<okitch::Vec2d>> meas_history_;
 };
 
+void checkRegression(const std::vector<evo_driver::EvoController> &agents,
+                     const std::vector<evo_driver::EvoController> &new_agents)
+{
+    static float                                   prev_best_score{0};
+    static std::vector<EvoController::EvoControls> prev_leader_controls;
+    static std::vector<std::vector<okitch::Vec2d>> prev_leader_meas;
+    static std::array<Eigen::MatrixXf, 2>          prev_leader_network;
+
+    if (prev_best_score > new_agents.front().score_)
+    {
+        std::cout << "REGRESSED" << std::endl;
+
+        // Actions of the previous episode's best performer
+        for (size_t i{0}; i < agents.front().actions_history_.size(); i++)
+        {
+            if (agents.front().actions_history_[i].acceleration_delta != prev_leader_controls[i].acceleration_delta)
+            {
+                std::cout << "acc delta deviated at " << i << ": "
+                          << agents.front().actions_history_[i].acceleration_delta << " -> "
+                          << prev_leader_controls[i].acceleration_delta << std::endl;
+                break;
+            }
+            if (agents.front().actions_history_[i].steering_delta != prev_leader_controls[i].steering_delta)
+            {
+                std::cout << "str delta deviated at " << i << ": " << agents.front().actions_history_[i].steering_delta
+                          << " -> " << prev_leader_controls[i].steering_delta << std::endl;
+                break;
+            }
+        }
+        bool break_meas{false};
+        for (size_t j{0}; j < agents.front().meas_history_.size(); j++)
+        {
+            for (size_t i{0}; i < agents.front().meas_history_[j].size(); i++)
+            {
+                if (agents.front().meas_history_[j][i].x != prev_leader_meas[j][i].x)
+                {
+                    std::cout << "meas(x) deviated at step" << j << " index " << i << " : "
+                              << agents.front().meas_history_[j][i].x << " -> " << prev_leader_meas[j][i].x
+                              << std::endl;
+                    break_meas = true;
+                    break;
+                }
+                if (agents.front().meas_history_[j][i].y != prev_leader_meas[j][i].y)
+                {
+                    std::cout << "meas(y) deviated at step" << j << " index " << i << " : "
+                              << agents.front().meas_history_[j][i].y << " -> " << prev_leader_meas[j][i].y
+                              << std::endl;
+                    break_meas = true;
+                    break;
+                }
+            }
+            if (break_meas)
+            {
+                break;
+            }
+        }
+
+        for (int k{0}; k < prev_leader_network[0].rows() * prev_leader_network[0].cols(); k++)
+        {
+            if (prev_leader_network[0].data()[k] != agents.front().nn_.weights_1_.data()[k])
+            {
+                printf("networks(1) differ at coef %d: %f %f\n",
+                       k,
+                       prev_leader_network[0].data()[k],
+                       agents.front().nn_.weights_1_.data()[k]);
+                // break;
+            }
+        }
+        for (int k{0}; k < prev_leader_network[1].rows() * prev_leader_network[1].cols(); k++)
+        {
+            if (prev_leader_network[1].data()[k] != agents.front().nn_.weights_2_.data()[k])
+            {
+                printf("networks(2) differ at coef %d: %f %f\n",
+                       k,
+                       prev_leader_network[0].data()[k],
+                       agents.front().nn_.weights_1_.data()[k]);
+                // break;
+            }
+        }
+    }
+    prev_best_score      = agents.front().score_;
+    prev_leader_controls = agents.front().actions_history_;
+    prev_leader_meas     = agents.front().meas_history_;
+    prev_leader_network  = {agents.front().nn_.weights_1_, agents.front().nn_.weights_2_};
+}
+
+// Mate 2 agents s.t. the offsprint node is direct transfer of one of the parent's node, whose probability depends on the episode score
 Network mate2AgentsSelective(const evo_driver::EvoController &agent_1, const evo_driver::EvoController &agent_2)
 {
     constexpr float kMutationProb        = 0.05; // 0.05 probability for a given weight to mutate randomly
@@ -199,6 +289,7 @@ Network mate2AgentsSelective(const evo_driver::EvoController &agent_1, const evo
     return offspring_nn;
 }
 
+// Mates 2 agents s.t. the offspring node is the weighted average of the parents' nodes
 Network mate2AgentsAvg(const evo_driver::EvoController &agent_1, const evo_driver::EvoController &agent_2)
 {
     constexpr float kMutationProb        = 0.05; // 0.05 probability for a given weight to mutate randomly
@@ -274,6 +365,8 @@ void chooseAndMateAgents(std::vector<evo_driver::EvoController> &agents)
     agent_to_num_chosen_map.at(0) += 2;
     std::cout << "top: " << new_agents.front().score_ << std::endl;
 
+    checkRegression(agents, new_agents);
+
     // Probability of each agent to into mating is proportional to it's score
     std::random_device           rand_device;
     std::mt19937                 rand_generator(rand_device());
@@ -298,6 +391,44 @@ void chooseAndMateAgents(std::vector<evo_driver::EvoController> &agents)
     {
         std::cout << std::left << std::setw(15) << "agent score: " << std::right << std::setw(6) << agents[id].score_
                   << " # chosen: " << std::right << std::setw(6) << agent_to_num_chosen_map.at(id) << std::endl;
+    }
+
+    // Sanity check
+    {
+        for (int k{0}; k < agents[0].nn_.weights_1_.rows() * agents[0].nn_.weights_1_.cols(); k++)
+        {
+            if (agents[0].nn_.weights_1_.data()[k] != new_agents[0].nn_.weights_1_.data()[k])
+            {
+                printf("------- networks(1) differ at coef %d: %f %f\n",
+                       k,
+                       agents[0].nn_.weights_1_.data()[k],
+                       new_agents[0].nn_.weights_1_.data()[k]);
+                // break;
+            }
+        }
+        for (int k{0}; k < agents[0].nn_.weights_2_.rows() * agents[0].nn_.weights_2_.cols(); k++)
+        {
+            if (agents[0].nn_.weights_2_.data()[k] != agents.front().nn_.weights_2_.data()[k])
+            {
+                printf("------- networks(2) differ at coef %d: %f %f\n",
+                       k,
+                       agents[0].nn_.weights_2_.data()[k],
+                       new_agents[0].nn_.weights_2_.data()[k]);
+                // break;
+            }
+        }
+    }
+
+    agents = new_agents;
+}
+
+void chooseAndMateAgents2(std::vector<evo_driver::EvoController> &agents)
+{
+    std::vector<evo_driver::EvoController> new_agents;
+
+    for (size_t i{0}; i < agents.size(); i++)
+    {
+        new_agents.push_back(agents[i]);
     }
 
     agents = new_agents;

@@ -16,7 +16,7 @@ const raylib::Color kLRightBoudaryCol{0, 0, 255, 255};
 constexpr bool      kDrawSensorRays{false};
 
 constexpr float    kSensorRange{200.F};
-constexpr float    kDeltaStandstillLimit{0.00001F}; // displacement threshold used to indicate an agent is standstill
+constexpr float    kDeltaStandstillLimit{0.001F}; // displacement threshold used to indicate an agent is standstill
 constexpr uint32_t kStandstillTimeout{200}; // # of consecutive standstill iterations after which we reset the episode
 
 std::vector<Pixel> bresenham(const int &x0, const int &y0, const int &x1, const int &y1)
@@ -151,6 +151,7 @@ class Driver
     {
         constexpr float kSpeedLimit{100.F};
         constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
+        // constexpr float kDt{0.05};
 
         if (auto_control_enabled_)
         {
