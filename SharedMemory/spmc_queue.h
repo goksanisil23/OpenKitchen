@@ -59,7 +59,7 @@ class SPMCQueue
     }
 
   private:
-    friend class Reader;
+    friend struct Reader;
     struct alignas(64) Block
     {
         uint32_t idx = 0;
