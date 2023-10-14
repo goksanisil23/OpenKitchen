@@ -8,9 +8,9 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include "raylib_msgs.h"
+#include "Environment/IpcMsgs.h"
 
-namespace evo_driver
+namespace genetic
 {
 
 float normalizeAngleDeg(float angle)
@@ -92,29 +92,36 @@ class Network
     static constexpr uint16_t            kInputsFromSensor{15};
     static constexpr uint16_t            kInputsSize{kInputsFromSensor + 2};
     static constexpr uint16_t            kOutputSize{6};
-    static constexpr uint16_t            kHiddenLayerSize{30}; // 100
+    static constexpr uint16_t            kHiddenLayerSize{30};
     static constexpr ClassificationLayer kClassificationLayerType{ClassificationLayer::Sigmoid};
+    static constexpr bool                kInitFromCheckpoint{true};
 
     Network()
     {
-        // Initialize with random weights in [-1,1] range
-        weights_1_ = Eigen::Matrix<float, kInputsSize, kHiddenLayerSize>::Random();
-        weights_2_ = Eigen::Matrix<float, kHiddenLayerSize, kOutputSize>::Random();
-
-        // Eigen::MatrixXf w1, w2;
-        // readMatrixFromFile("agent_weights_1.txt", w1);
-        // readMatrixFromFile("agent_weights_2.txt", w2);
-
-        // weights_1_ = w1;
-        // weights_2_ = w2;
+        // A) --- Random initialization
+        if constexpr (!kInitFromCheckpoint)
+        {
+            // Initialize with random weights in[-1, 1] range
+            weights_1_ = Eigen::Matrix<float, kInputsSize, kHiddenLayerSize>::Random();
+            weights_2_ = Eigen::Matrix<float, kHiddenLayerSize, kOutputSize>::Random();
+        }
+        // B) --- Initializing from checkpoint
+        else
+        {
+            Eigen::MatrixXf w1, w2;
+            readMatrixFromFile("../agent_weights_1.txt.safe", w1);
+            readMatrixFromFile("../agent_weights_2.txt.safe", w2);
+            weights_1_ = w1;
+            weights_2_ = w2;
+        }
     }
 
-    std::array<float, kOutputSize>
-    infer(const float speed, const float rotation, const std::vector<okitch::Vec2d> &sensor_hits)
+    std::array<float, kOutputSize> infer(const float speed, const float rotation, const std::vector<Vec2d> &sensor_hits)
     {
         constexpr float kSpeedLimit{100.F};
         constexpr float kRotationLimit{360.F};
         constexpr float kSensorRange{200.F};
+
         // populate the input, but normalize the features so that all lie in [0,1]
         // inputs_buffer_(0) = (speed + kSpeedLimit) / (2.F * kSpeedLimit);
         inputs_buffer_(0) = speed / kSpeedLimit; // since we don't allow (-) speed
@@ -172,4 +179,4 @@ class Network
     Eigen::Matrix<float, 1, kHiddenLayerSize> hidden_layer_buffer_;
 };
 
-} // namespace evo_driver
+} // namespace genetic
