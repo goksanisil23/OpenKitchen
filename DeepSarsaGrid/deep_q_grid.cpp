@@ -3,14 +3,10 @@
 #include <raylib.h>
 #include <torch/torch.h>
 
-constexpr int            screenWidth  = 800;
-constexpr int            screenHeight = 800;
-constexpr int            kGridSize    = 10;
-static constexpr int64_t kHiddenLayerSize{20};
-constexpr int            kCellSize = screenWidth / kGridSize;
-constexpr bool           kRandomReInit{true};
-constexpr double         kLearningRate(0.001);
-constexpr double         kEpsilon(0.9);
+constexpr int screenWidth  = 800;
+constexpr int screenHeight = 800;
+constexpr int kGridSize    = 10;
+constexpr int kCellSize    = screenWidth / kGridSize;
 
 enum Action
 {
@@ -23,9 +19,8 @@ enum Action
 
 struct State
 {
-    int32_t x, y;
+    int x, y;
 };
-
 bool operator==(const State &lhs, const State &rhs)
 {
     return (lhs.x == rhs.x && lhs.y == rhs.y);
@@ -34,9 +29,8 @@ bool operator==(const State &lhs, const State &rhs)
 struct Net : torch::nn::Module
 {
     Net()
-        : fc1(register_module("fc1", torch::nn::Linear(2, kHiddenLayerSize))),
-          fc2(register_module("fc2", torch::nn::Linear(kHiddenLayerSize, kHiddenLayerSize))),
-          out(register_module("out", torch::nn::Linear(kHiddenLayerSize, ACTION_COUNT)))
+        : fc1(register_module("fc1", torch::nn::Linear(2, 24))), fc2(register_module("fc2", torch::nn::Linear(24, 24))),
+          out(register_module("out", torch::nn::Linear(24, ACTION_COUNT)))
     {
     }
 
@@ -51,16 +45,15 @@ struct Net : torch::nn::Module
     torch::nn::Linear fc1, fc2, out;
 };
 
-class DeepSarsaAgent
+class DeepQAgent
 {
-  public:
-    double               epsilon;
-    std::shared_ptr<Net> q_network;
-    torch::optim::Adam   optimizer;
+  private:
+    Net                q_network;
+    torch::optim::Adam optimizer;
+    double             epsilon;
 
   public:
-    DeepSarsaAgent()
-        : epsilon(kEpsilon), q_network(std::make_shared<Net>()), optimizer(q_network->parameters(), kLearningRate)
+    DeepQAgent() : optimizer(q_network.parameters(), /*lr=*/0.01), epsilon(0.9)
     {
     }
 
@@ -72,27 +65,22 @@ class DeepSarsaAgent
         }
 
         torch::Tensor state_tensor = torch::tensor({state.x, state.y}, torch::kFloat32);
-        auto          q_values     = q_network->forward(state_tensor);
+        auto          q_values     = q_network.forward(state_tensor);
         return static_cast<Action>(q_values.argmax().item<int>());
     }
 
-    void updateQNetwork(const State  &state,
-                        Action        action,
-                        double        reward,
-                        const State  &next_state,
-                        const Action &next_action,
-                        const bool    done)
+    void updateQNetwork(const State &state, Action action, double reward, const State &next_state, const bool done)
     {
         torch::Tensor old_state_tensor = torch::tensor({state.x, state.y}, torch::kFloat32);
         torch::Tensor new_state_tensor = torch::tensor({next_state.x, next_state.y}, torch::kFloat32);
 
-        auto old_q_values = q_network->forward(old_state_tensor);
-        // auto next_q_values = q_network->forward(new_state_tensor);
-        auto target = old_q_values.clone().detach();
-        // if (done)
-        target[action] = reward;
-        // else
-        //     target[action] = reward + 0.9 * next_q_values[next_action].item<float>();
+        auto old_q_values  = q_network.forward(old_state_tensor);
+        auto next_q_values = q_network.forward(new_state_tensor);
+        auto target        = old_q_values.clone().detach();
+        if (done)
+            target[action] = reward;
+        else
+            target[action] = reward + 0.9 * next_q_values.max().item<float>();
 
         optimizer.zero_grad();
         torch::mse_loss(old_q_values, target).backward();
@@ -102,23 +90,11 @@ class DeepSarsaAgent
     std::pair<Action, float> getMaxQValue(const State &state)
     {
         torch::Tensor                            state_tensor = torch::tensor({state.x, state.y}, torch::kFloat32);
-        auto                                     q_values     = q_network->forward(state_tensor);
+        auto                                     q_values     = q_network.forward(state_tensor);
         std::tuple<torch::Tensor, torch::Tensor> max_result   = q_values.max(0);
         float                                    max_value    = std::get<0>(max_result).item<float>();
         int32_t                                  max_index    = std::get<1>(max_result).item<int32_t>();
         return {static_cast<Action>(max_index), max_value};
-    }
-
-    std::array<float, 4> getQValues(const State &state) const
-    {
-        torch::Tensor        state_tensor = torch::tensor({state.x, state.y}, torch::kFloat32);
-        auto                 q_values     = q_network->forward(state_tensor);
-        std::array<float, 4> res;
-        for (int32_t i{0}; i < 4; i++)
-        {
-            res[i] = q_values[i].item<float>();
-        }
-        return res;
     }
 };
 
@@ -260,48 +236,19 @@ State move(const State &state, const Action &action)
     return next_state;
 }
 
-void resetState(State &state)
-{
-    if constexpr (kRandomReInit)
-    {
-        state = State{torch::randint(0, kGridSize - 1, {1}).item<int32_t>(),
-                      torch::randint(0, kGridSize - 1, {1}).item<int32_t>()};
-    }
-    else
-    {
-        state = State{0, 0};
-    }
-}
-
-void showAllQValues(const DeepSarsaAgent &agent)
-{
-    for (int i = 0; i < kGridSize; i++)
-    {
-        for (int j = 0; j < kGridSize; j++)
-        {
-            auto res = agent.getQValues({i, j});
-            std::cout << "(" << i << "," << j << "): "
-                      << "UP " << res[0] << " DOWN " << res[1] << " LEFT " << res[2] << " RIGHT " << res[3]
-                      << std::endl;
-        }
-    }
-}
-
 int main(void)
 {
     InitWindow(screenWidth, screenHeight, "Deep SARSA GridWorld with Torch");
     // SetTargetFPS(10);
 
-    State goal = {kGridSize - 1, kGridSize - 1};
-    State state;
-    resetState(state);
-
-    DeepSarsaAgent agent;
+    State      goal  = {kGridSize - 1, kGridSize - 1};
+    State      state = {0, 0};
+    DeepQAgent agent;
     // best-action/value for a cell
     std::array<std::array<std::pair<Action, float>, kGridSize>, kGridSize> q_values_grid = {};
 
     double reward;
-    Action action, next_action;
+    Action action;
     State  next_state;
 
     action = agent.chooseAction(state);
@@ -309,12 +256,11 @@ int main(void)
     bool        done    = false;
     const float maxDist = std::sqrt(std::pow(kGridSize - 1, 2) * 2);
 
-    size_t ctr{0}, crash_ctr{0}, goal_reach_ctr{0};
     while (!WindowShouldClose())
     {
-        ctr++;
         draw(state, goal, q_values_grid);
 
+        action     = agent.chooseAction(state);
         next_state = move(state, action);
 
         // crashed the walls?
@@ -322,47 +268,29 @@ int main(void)
         {
             done   = true;
             reward = 0;
-            crash_ctr++;
         }
         else if (next_state == goal)
         {
             done   = true;
             reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
-            goal_reach_ctr++;
         }
         else
         {
             reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
         }
 
-        next_action = agent.chooseAction(next_state);
+        agent.updateQNetwork(state, action, reward, next_state, done);
 
-        agent.updateQNetwork(state, action, reward, next_state, next_action, done);
+        q_values_grid[state.x][state.y] = agent.getMaxQValue(state); // only for visualization
 
-        // Update the entired grid's greedy action/values
-        for (int i = 0; i < kGridSize; i++)
-        {
-            for (int j = 0; j < kGridSize; j++)
-            {
-                q_values_grid[i][j] = agent.getMaxQValue({i, j}); // only for visualization
-            }
-        }
-
-        state  = next_state;
-        action = next_action;
+        state = next_state;
 
         if (done)
         {
-            resetState(state);
+            state  = {0, 0};
             done   = false;
             reward = 0.;
         }
-
-        // Show all q values
-        // showAllQValues(agent);
-
-        // std::cout << "total: " << ctr << " crash: " << crash_ctr << " goal_reach: " << goal_reach_ctr
-        //           << " eps: " << agent.epsilon << std::endl;
     }
 
     CloseWindow();
