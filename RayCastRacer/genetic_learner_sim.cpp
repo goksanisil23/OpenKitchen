@@ -4,8 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "EnvUtils.hpp"
 #include "Environment/Visualizer.h"
-#include "EnvironmentUtils.hpp"
+#include "VisUtils.hpp"
 
 #include "raylib-cpp.hpp"
 #include "spmc_queue.h"
@@ -109,7 +110,6 @@ int main(int argc, char **argv)
             // We first check the collision before drawing any sensor or agents to avoid overlap
             // NOTE: Sensor update needs to happen before drawing multiple agents since we emulate parallel simulators here so agents
             // should NOT see each other's world.
-            // for (auto &driver : agents)
             for (size_t i{0}; i < agents.size(); i++)
             {
                 if (!agents[i].crashed_)
@@ -125,7 +125,9 @@ int main(int argc, char **argv)
                 }
             }
             for (auto &agent : agents)
+            {
                 visualizer.drawAgent(agent, render_buffer);
+            }
             UpdateTexture(visualizer.render_target_.texture, render_buffer.data);
         }
 

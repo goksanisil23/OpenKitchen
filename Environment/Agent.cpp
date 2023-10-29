@@ -34,22 +34,27 @@ void Agent::manualMove()
 
         if (IsKeyDown(KEY_UP))
         {
-            speed_ += kAccInc;
+            // speed_ += kAccInc;
+
+            pos_.x += cos(DEG2RAD * rot_) * 0.6 * GetFrameTime();
+            pos_.y += sin(DEG2RAD * rot_) * 0.6 * GetFrameTime();
         }
         else if (IsKeyDown(KEY_DOWN))
         {
-            speed_ -= kAccInc;
+            // speed_ -= kAccInc;
+
+            pos_.x += cos(DEG2RAD * rot_) * 0.6 * GetFrameTime();
+            pos_.y += sin(DEG2RAD * rot_) * 0.6 * GetFrameTime();
         }
 
-        pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
-        pos_.y += sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+        // pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
+        // pos_.y += sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
     }
 }
 
 // Applies the most recent control actions to move the agent kinematically
 void Agent::move()
 {
-    constexpr float kSpeedLimit{100.F};
     constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
 
     if (auto_control_enabled_)
@@ -92,10 +97,20 @@ void Agent::reset(const raylib::Vector2 &reset_pos, const float reset_rot)
     speed_        = 0.F;
 
     crashed_              = false;
+    completed_            = false;
     standstill_timed_out_ = false;
     standstill_ctr_       = 0;
 
     score_ = 0.F;
 
-    current_action_ = Action();
+    current_action_ = Action{0.F, 0.F};
+}
+
+// Returns whether the episode is done or not
+bool Agent::isDone() const
+{
+    if (crashed_ || completed_)
+        return true;
+    else
+        return false;
 }

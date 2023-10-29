@@ -10,11 +10,12 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 set(COMPILER_FLAGS -Wall -std=c++17 -O2 -ldl -pthread -lrt)
 
 # Targets for executables
-set(GENETIC_LEARNER_SRCS 
-    ${CMAKE_CURRENT_SOURCE_DIR}/EnvironmentUtils.hpp
+set(GENETIC_LEARNER_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/GeneticAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Mating.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/EnvUtils.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VisUtils.hpp
 )
 
 add_executable(${BINARY_NAME} genetic_learner_sim.cpp ${GENETIC_LEARNER_SRCS})
