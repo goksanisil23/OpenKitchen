@@ -1,3 +1,5 @@
+#pragma once
+
 #include "raylib-cpp.hpp"
 #include <algorithm>
 #include <cassert>

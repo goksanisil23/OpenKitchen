@@ -64,7 +64,7 @@ Visualizer::Visualizer()
     SetTraceLogLevel(LOG_ERROR);
 
     window_ = std::make_unique<raylib::Window>(kScreenWidth, kScreenHeight, "");
-    window_->SetPosition(50, 20);
+    window_->SetPosition(1750, 20);
 
     // We draw in this texture manner since we want to get pixel values
     render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);
@@ -78,9 +78,9 @@ void Visualizer::activateDrawing()
 
 void Visualizer::drawAgent(Agent &agent, raylib::Image &render_buffer)
 {
-    raylib::Color   agent_color = (agent.crashed_) ? (Color){253, 249, 0, 150} : raylib::Color::DarkGray();
+    raylib::Color   color = (agent.crashed_) ? raylib::Color((Color){253, 249, 0, 150}) : agent.color_;
     raylib::Vector2 agent_texture_coord{agent.pos_.x, kScreenHeight - agent.pos_.y};
-    render_buffer.DrawCircle(agent_texture_coord, agent.radius_, agent_color);
+    render_buffer.DrawCircle(agent_texture_coord, agent.radius_, color);
 
     // // Draw heading line for robot
     raylib::Vector2 heading_end = {agent_texture_coord.x + agent.radius_ * cos(DEG2RAD * agent.rot_),
@@ -98,8 +98,8 @@ void Visualizer::updateSensor(Agent &agent, const raylib::Image &render_buffer)
     float ray_start_x, ray_start_y;
     float drv_rot_rad = agent.rot_ * DEG2RAD; // Convert angle to radians
 
-    ray_start_x = agent.pos_.x + agent.radius_ * cos(DEG2RAD * agent.rot_);
-    ray_start_y = kScreenHeight - agent.pos_.y + agent.radius_ * -sin(DEG2RAD * agent.rot_);
+    ray_start_x = agent.pos_.x + agent.sensor_offset_ * cos(DEG2RAD * agent.rot_);
+    ray_start_y = kScreenHeight - agent.pos_.y + agent.sensor_offset_ * -sin(DEG2RAD * agent.rot_);
 
     if (agent.has_raycast_sensor_)
     {

@@ -38,7 +38,7 @@ class RaceTrack
                             left_bound_outer_,
                             right_bound_inner_,
                             right_bound_outer_,
-                            init_heading_deg_);
+                            headings_);
         start_line_  = {right_bound_outer_.front(), right_bound_outer_.back()};
         finish_line_ = {left_bound_outer_.front(), left_bound_outer_.back()};
     }
@@ -256,7 +256,7 @@ class RaceTrack
                              std::vector<Vec2d> &left_bound_outer,
                              std::vector<Vec2d> &right_bound_inner,
                              std::vector<Vec2d> &right_bound_outer,
-                             float              &init_heading)
+                             std::vector<float> &headings)
     {
         // Find the heading of the line so that we can draw a perpendicular point, lane width away
         std::vector<float> dx = gradient(track_data_points.x_m);
@@ -272,6 +272,7 @@ class RaceTrack
         {
             dx[i] /= mag[i];
             dy[i] /= mag[i];
+            headings.push_back(std::atan2(dy[i], dx[i]) * 180.0F / M_PI);
         }
 
         left_bound_inner.resize(dx.size());
@@ -300,8 +301,6 @@ class RaceTrack
             left_bound_outer[i].y =
                 track_data_points.y_m[i] + (track_data_points.w_tr_left_m[i] + kBoundaryThickness) * dx[i];
         }
-
-        init_heading = std::atan2(dy[0], dx[0]) * 180.0F / M_PI;
     }
 
   public:
@@ -310,5 +309,5 @@ class RaceTrack
     //  data used for drawing
     std::vector<Vec2d> left_bound_inner_, left_bound_outer_, right_bound_inner_, right_bound_outer_;
     std::vector<Vec2d> start_line_, finish_line_;
-    float              init_heading_deg_{};
+    std::vector<float> headings_{};
 };
