@@ -1,0 +1,1 @@
+Inspired by Andrew Davidson's DynamicWindow example
