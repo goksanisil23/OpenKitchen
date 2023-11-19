@@ -10,7 +10,7 @@
 
 #include "raylib-cpp.hpp"
 
-namespace deep_sarsa
+namespace rl
 {
 class Environment
 {
@@ -32,6 +32,15 @@ class Environment
     {
         agents_.push_back(agent);
     }
+    void drawSensorRanges(const std::vector<Vec2d> &sensor_hits)
+    {
+        std::string range_string{""};
+        for (const auto &hit : sensor_hits)
+        {
+            range_string += std::to_string(static_cast<int64_t>(hit.norm())) + " ";
+        }
+        DrawText(range_string.c_str(), kScreenWidth - 400, 100, 15, WHITE);
+    }
 
     // Iterates 1 step in the environment given the current action and returns the next state of the agent
     void step()
@@ -41,7 +50,8 @@ class Environment
         {
             if (!agent->crashed_)
             {
-                agent->move();
+                // agent->move();
+                agent->move2();
                 // agent->manualMove();
                 if (agent->standstill_timed_out_)
                 {
@@ -59,12 +69,38 @@ class Environment
                 race_track_->left_bound_inner_, race_track_->left_bound_outer_, raylib::Color(255, 0, 0, 255));
             env::Visualizer::shadeAreaBetweenCurves(
                 race_track_->left_bound_inner_, race_track_->right_bound_inner_, raylib::Color(0, 255, 0, 255));
-            env::Visualizer::shadeAreaBetweenCurves(
-                race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 0, 255, 255));
+            // env::Visualizer::shadeAreaBetweenCurves(
+            // race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 0, 255, 255));
+
+            // For continuous loop
+            if constexpr (env::kContinuousLoop)
+            {
+                env::Visualizer::shadeAreaBetweenCurves(
+                    race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 255, 0, 255));
+                env::Visualizer::shadeAreaBetweenCurves(
+                    std::vector<Vec2d>{race_track_->right_bound_inner_.front(), race_track_->right_bound_inner_.back()},
+                    std::vector<Vec2d>{race_track_->right_bound_outer_.front(), race_track_->right_bound_outer_.back()},
+                    raylib::Color(0, 0, 255, 255));
+                env::Visualizer::shadeAreaBetweenCurves(
+                    std::vector<Vec2d>{race_track_->left_bound_inner_.front(), race_track_->left_bound_inner_.back()},
+                    std::vector<Vec2d>{race_track_->left_bound_outer_.front(), race_track_->left_bound_outer_.back()},
+                    raylib::Color(255, 0, 0, 255));
+            }
+            else
+            {
+                env::Visualizer::shadeAreaBetweenCurves(
+                    race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 255, 0, 255));
+            }
+
             // drawTrackPointNumbers(track_data_points);
             // genetic::util::drawActionBar(agents, iteration);
             // genetic::util::drawEpisodeNum(episode_idx);
             // genetic::util::drawTrackTitle(race_track->track_name_);
+
+            for (auto &agent : agents_)
+            {
+                drawSensorRanges(agent->sensor_hits_);
+            }
         }
         visualizer_->disableDrawing();
 
@@ -104,4 +140,4 @@ class Environment
     std::unique_ptr<env::Visualizer> visualizer_;
     std::vector<Agent *>             agents_;
 };
-} // namespace deep_sarsa
+} // namespace rl
