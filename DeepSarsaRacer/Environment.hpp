@@ -97,10 +97,8 @@ class Environment
             // genetic::util::drawEpisodeNum(episode_idx);
             // genetic::util::drawTrackTitle(race_track->track_name_);
 
-            for (auto &agent : agents_)
-            {
-                drawSensorRanges(agent->sensor_hits_);
-            }
+            if (user_draw_callback_)
+                user_draw_callback_();
         }
         visualizer_->disableDrawing();
 
@@ -139,5 +137,7 @@ class Environment
     std::unique_ptr<RaceTrack>       race_track_;
     std::unique_ptr<env::Visualizer> visualizer_;
     std::vector<Agent *>             agents_;
+
+    std::function<void()> user_draw_callback_{nullptr};
 };
 } // namespace rl

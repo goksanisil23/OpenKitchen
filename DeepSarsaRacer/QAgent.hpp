@@ -32,6 +32,8 @@ class QLearnAgent : public Agent
 
     static constexpr float kInvalidQVal{std::numeric_limits<float>::lowest()};
 
+    static constexpr float kDangerProximity{5.0F};
+
     const std::unordered_map<int32_t, std::pair<float, float>> kActionMap{{0, {kVelocity, 0.F}},
                                                                           {1, {kVelocity / 2.F, kSteeringDelta}},
                                                                           {2, {kVelocity / 2.F, -kSteeringDelta}}};
@@ -66,11 +68,11 @@ class QLearnAgent : public Agent
         {
             size_t     bin;
             auto const ray_dist = sensor_hits_[i].norm();
-            if (ray_dist < 5.F)
+            if (ray_dist < kDangerProximity)
             {
                 bin = 0;
             }
-            else if (ray_dist < 10.F)
+            else if (ray_dist < (kDangerProximity * 2.F))
             {
                 bin = 1;
             }
@@ -78,10 +80,8 @@ class QLearnAgent : public Agent
             {
                 bin = 2;
             }
-            // std::cout << bin;
             state_index += bin * std::pow(3, i);
         }
-        // std::cout << std::endl;
         return state_index;
     }
 
@@ -114,20 +114,12 @@ class QLearnAgent : public Agent
 
     void learn(const size_t current_state_idx, const size_t action, const float reward, const size_t next_state_idx)
     {
-        // maxqnew = max([self.getQ(state2, a) for a in self.actions])
-        // self.learnQ(state1, action1, reward, reward + self.gamma * maxqnew)
-
-        // oldv = self.q.get((state, action), None)
-        // if oldv is None:
-        // self.q[(state, action)] = reward
-        // else:
-        // self.q[(state, action)] = oldv + self.alpha * (value - oldv)
 
         // Q-learning:
-        // Q(s, a) += alpha * (reward(s,a) + max(Q(s') - Q(s,a))
+        // Q_new(s, a) = (1-α) * Q_current + α*(reward(s,a) + γ*max(Q(s'))
 
         float max_q_next_state = *std::max_element(q_values_[next_state_idx].begin(), q_values_[next_state_idx].end());
-        float target_val       = reward + kGamma * max_q_next_state;
+        float temporal_diff_target = reward + kGamma * max_q_next_state;
 
         float old_q = q_values_.at(current_state_idx_).at(current_action_idx_);
         if (old_q == kInvalidQVal)
@@ -136,7 +128,7 @@ class QLearnAgent : public Agent
         }
         else
         {
-            q_values_.at(current_state_idx_).at(current_action_idx_) = old_q + kAlpha * (target_val - old_q);
+            q_values_.at(current_state_idx_).at(current_action_idx_) = old_q + kAlpha * (temporal_diff_target - old_q);
         }
     }
 
@@ -156,35 +148,19 @@ class QLearnAgent : public Agent
         }
 
         float  dist_based_reward{0.F};
-        size_t zero_ctr = 0;
+        size_t danger_ctr = 0;
+        // Penalize by the amount of rays reporting dangerously close
         for (auto const hit : sensor_hits_)
         {
             auto const ray_dist = hit.norm();
-
-            // A)
-
-            // if (ray_dist < 5.F)
-            // {
-            //     dist_based_reward += 0;
-            // }
-            // else if (ray_dist < 10.F)
-            // {
-            //     dist_based_reward += 3;
-            // }
-            // else
-            // {
-            //     dist_based_reward += 5;
-            // }
-
-            // B)
-            if (ray_dist < 5.0F)
+            if (ray_dist < kDangerProximity)
             {
-                zero_ctr++;
+                danger_ctr++;
             }
         }
-        if (zero_ctr >= 3)
+        if (danger_ctr >= 3)
             dist_based_reward = -50;
-        else if (zero_ctr == 2)
+        else if (danger_ctr == 2)
             dist_based_reward = 0;
         else
             dist_based_reward = 5;
@@ -193,7 +169,6 @@ class QLearnAgent : public Agent
 
   public:
     size_t current_action_idx_;
-
     size_t current_state_idx_;
 
     float epsilon_{kEpsilon};
