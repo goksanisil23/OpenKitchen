@@ -23,12 +23,16 @@ class QLearnAgent : public Agent
     static constexpr float kVelocity{60.0};
     static constexpr float kSteeringDelta{5}; // degrees
 
-    static constexpr float kEpsilon{0.9};            // probability of choosing random action (initial value)
-    static constexpr float kEpsilonDiscount{0.9986}; // how much epsilon decreases to next episode
-    static constexpr float kGamma{0.8};              // discount factor btw current and future rewards
+    static constexpr float kEpsilon{0.9}; // probability of choosing random action (initial value)
+    // static constexpr float kEpsilonDiscount{0.9986}; // how much epsilon decreases to next episode
+    static constexpr float kEpsilonDiscount{0.92};
+    static constexpr float kGamma{0.8}; // discount factor btw current and future rewards
     static constexpr float kAlpha{0.2};
 
-    static constexpr uint32_t kNumStates{243}; // for each 5 sensor ray, we have 3 regions (close,mid,far)
+    // 5 rays, 3 regions based on proximity --> state
+    // 3 actions per state
+    static constexpr size_t   kActionSize{3};
+    static constexpr uint32_t kNumStates{243};
 
     static constexpr float kInvalidQVal{std::numeric_limits<float>::lowest()};
 
@@ -53,16 +57,15 @@ class QLearnAgent : public Agent
         sensor_ray_angles_.push_back(70.F);
 
         // Set all the Q-values to invalid
-        for (auto &q_vals_per_state : q_values_)
+        for (auto &action_vals_per_state : q_values_)
         {
-            std::fill(q_vals_per_state.begin(), q_vals_per_state.end(), kInvalidQVal);
+            std::fill(action_vals_per_state.begin(), action_vals_per_state.end(), kInvalidQVal);
         }
     }
 
     // Discretizes the sensor readings into binned regions
     size_t discretizeState()
     {
-        // std::cout << "states: ";
         size_t state_index = 0;
         for (size_t i{0}; i < sensor_hits_.size(); i++)
         {
@@ -93,7 +96,6 @@ class QLearnAgent : public Agent
         if (rand_val < epsilon_)
         {
             current_action_idx_ = static_cast<size_t>(GetRandomValue(0, 2));
-            this->color_        = BLACK;
         }
         else
         {
@@ -104,7 +106,6 @@ class QLearnAgent : public Agent
 
             // Choose the action corresponding to maximum q-value estimate
             current_action_idx_ = max_val_action;
-            this->color_        = WHITE;
         }
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
@@ -114,7 +115,6 @@ class QLearnAgent : public Agent
 
     void learn(const size_t current_state_idx, const size_t action, const float reward, const size_t next_state_idx)
     {
-
         // Q-learning:
         // Q_new(s, a) = (1-α) * Q_current + α*(reward(s,a) + γ*max(Q(s'))
 
@@ -122,7 +122,7 @@ class QLearnAgent : public Agent
         float temporal_diff_target = reward + kGamma * max_q_next_state;
 
         float old_q = q_values_.at(current_state_idx_).at(current_action_idx_);
-        if (old_q == kInvalidQVal)
+        if ((old_q == kInvalidQVal) || (max_q_next_state == kInvalidQVal))
         {
             q_values_.at(current_state_idx_).at(current_action_idx_) = reward;
         }
@@ -140,7 +140,7 @@ class QLearnAgent : public Agent
     }
 
     // Calculates the current rewards of the agent
-    float reward() const
+    float reward(const size_t nearest_track_idx) const
     {
         if (crashed_)
         {
@@ -164,7 +164,18 @@ class QLearnAgent : public Agent
             dist_based_reward = 0;
         else
             dist_based_reward = 5;
-        return dist_based_reward;
+
+        // Progression based reward
+        float          progression_award{0.F};
+        static int64_t prev_track_idx{static_cast<int64_t>(nearest_track_idx)};
+        int64_t        progression = nearest_track_idx - prev_track_idx;
+        if (progression > 0)
+            progression_award = 20.F;
+        else
+            progression_award = -20.F;
+        prev_track_idx = nearest_track_idx;
+
+        return dist_based_reward + progression_award;
     }
 
   public:
@@ -173,9 +184,7 @@ class QLearnAgent : public Agent
 
     float epsilon_{kEpsilon};
 
-    // 5 rays, 3 regions based on proximity --> state
-    // 3 actions per state
-    std::array<std::array<float, 3>, 243> q_values_;
+    std::array<std::array<float, kActionSize>, kNumStates> q_values_;
 };
 
 } // namespace rl
