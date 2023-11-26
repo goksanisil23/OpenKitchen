@@ -1,5 +1,5 @@
 # Installation
-We need to install CUDA and libtorch locally. I prefer now having these installed as system libraries so we will use local paths.
+We need to install CUDA and libtorch locally. I prefer not having these installed as system libraries so we will use local paths.
 
 1) Download cuda and install locally. If you have NVidia drivers already installed, uncheck that option in interactive shell.
 ```sh
