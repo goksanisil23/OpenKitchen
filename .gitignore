@@ -40,3 +40,4 @@ raylib_images/
 
 # models
 *.torch
+*.onnx
