@@ -18,8 +18,6 @@ namespace deep_sarsa
 class GreedyAgent : public Agent
 {
   public:
-    static constexpr float kOutputActivationLim{0.5F};
-
     static constexpr float kAccelerationDelta{1.0};
     static constexpr float kSteeringDeltaLow{0.2}; // degrees
     static constexpr float kSteeringDeltaHigh{0.8};

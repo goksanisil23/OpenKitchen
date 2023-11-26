@@ -1,4 +1,7 @@
+#include <iostream>
+
 #include "Agent.h"
+
 #include "Typedefs.h"
 
 Agent::Agent(raylib::Vector2 start_pos, float start_rot, int16_t id) : pos_{start_pos}, rot_{start_rot}, id_{id}
@@ -25,26 +28,26 @@ void Agent::manualMove()
     {
         if (IsKeyDown(KEY_RIGHT))
         {
-            rot_ += kRotSpeed;
+            rot_ += kRotDeltaManual;
         }
         else if (IsKeyDown(KEY_LEFT))
         {
-            rot_ -= kRotSpeed;
+            rot_ -= kRotDeltaManual;
         }
 
         if (IsKeyDown(KEY_UP))
         {
             // speed_ += kAccInc;
 
-            pos_.x += cos(DEG2RAD * rot_) * 0.6 * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * 0.6 * GetFrameTime();
+            pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+            pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
         }
         else if (IsKeyDown(KEY_DOWN))
         {
             // speed_ -= kAccInc;
 
-            pos_.x += cos(DEG2RAD * rot_) * 0.6 * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * 0.6 * GetFrameTime();
+            pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+            pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
         }
 
         // pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
@@ -66,6 +69,35 @@ void Agent::move()
         // speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
         speed_ = (speed_ < 0) ? 0 : speed_;
         speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
+
+        float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
+        pos_.x += delta_x;
+        float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
+        pos_.y += delta_y;
+
+        if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
+        {
+            standstill_ctr_++;
+            if (standstill_ctr_ > kStandstillTimeout)
+            {
+                standstill_timed_out_ = true;
+            }
+        }
+        else
+        {
+            standstill_ctr_ = 0;
+        }
+    }
+}
+
+// Movement based on direct setting of speed and steering
+void Agent::move2()
+{
+    constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
+    if (auto_control_enabled_)
+    {
+        rot_ += current_action_.steering_delta;
+        speed_ = current_action_.acceleration_delta;
 
         float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
         pos_.x += delta_x;

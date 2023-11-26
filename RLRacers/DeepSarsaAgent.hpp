@@ -18,8 +18,6 @@ namespace deep_sarsa
 class DeepSarsaAgent : public Agent
 {
   public:
-    static constexpr float kOutputActivationLim{0.5F};
-
     static constexpr float kAccelerationDelta{1.0};
     static constexpr float kSteeringDeltaLow{0.2}; // degrees
     static constexpr float kSteeringDeltaHigh{0.8};
@@ -130,7 +128,8 @@ class DeepSarsaAgent : public Agent
         {
             avg_sensor_dist += hit.norm();
         }
-        float sensor_reward = avg_sensor_dist / (static_cast<float>(sensor_hits_.size()) * kSensorRange); // [0,1]
+        // float sensor_reward = avg_sensor_dist / (static_cast<float>(sensor_hits_.size()) * kSensorRange); // [0,1]
+        float sensor_reward = 0;
 
         float speed_reward = speed_ * 5.F / kSpeedLimit; //[0,1]
 

@@ -4,10 +4,13 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/Environment/",
                 "/home/s0001734/Downloads/raylib-cpp/include",
                 "/home/s0001734/Downloads/onnxruntime-linux-x64-gpu-1.15.1/include",
                 "/usr/include/opencv4",
-                "/usr/include/eigen3"
+                "/usr/include/eigen3",
+                "/home/s0001734/Downloads/libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121/libtorch/include",
+                "/home/s0001734/Downloads/libtorch-cxx11-abi-shared-with-deps-2.1.0+cu121/libtorch/include/torch/csrc/api/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

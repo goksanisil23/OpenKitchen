@@ -8,7 +8,7 @@
 #include "GreedyAgent.hpp"
 
 constexpr uint32_t kNumEpisodes{100};
-constexpr int16_t  kNumAgents{30};
+constexpr int16_t  kNumAgents{1};
 
 int main(int argc, char **argv)
 {

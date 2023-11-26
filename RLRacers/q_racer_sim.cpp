@@ -20,6 +20,7 @@ int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
     return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
 }
 
+// Takes the average of state-action values among all agents and assigns it back to them.
 void shareCumulativeKnowledge(std::vector<rl::QLearnAgent> &q_agents)
 {
     // Take the average of action-value pairs and assign it to all agents
@@ -97,12 +98,13 @@ int main(int argc, char **argv)
                             static_cast<int64_t>(env.race_track_->track_data_points_.x_m.size())));
         env.setAgent(&q_agents.back());
     }
-    // Make one agent totally greedy to track the performance
+    // (Optionally): Make one agent totally greedy to track the performance
     std::unique_ptr<rl::QLearnAgent> greedy_agent;
     if constexpr (kEnableGreedyAgent)
     {
-        greedy_agent = std::make_unique<rl::QLearnAgent>(
-            raylib::Vector2{start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
+        greedy_agent           = std::make_unique<rl::QLearnAgent>(raylib::Vector2{start_pos_x, start_pos_y},
+                                                         env.race_track_->headings_[RaceTrack::kStartingIdx],
+                                                         q_agents.size());
         greedy_agent->epsilon_ = 0.F;
         greedy_agent->color_   = BLUE;
         env.setAgent(greedy_agent.get());
@@ -191,10 +193,10 @@ int main(int argc, char **argv)
             {
                 for (auto &q_agent : q_agents)
                 {
-                    if (q_agent.epsilon_ > 0.5)
+                    if (q_agent.epsilon_ > 0.1)
                     {
                         // q_agent.epsilon_ *= rl::QLearnAgent::kEpsilonDiscount;
-                        q_agent.epsilon_ -= 0.5;
+                        q_agent.epsilon_ -= 0.05;
                     }
                     else
                     {

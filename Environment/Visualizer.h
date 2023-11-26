@@ -18,6 +18,8 @@ const raylib::Color kDrivableAreaCol{0, 255, 0, 255};
 const raylib::Color kLeftBarrierCol{255, 0, 0, 255};
 const raylib::Color kRightBarrierCol{0, 0, 255, 255};
 
+constexpr bool kContinuousLoop{true};
+
 // Visualization boilerplate class
 class Visualizer
 {
