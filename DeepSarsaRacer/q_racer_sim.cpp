@@ -10,43 +10,26 @@
 #include "QAgent.hpp"
 
 constexpr int16_t kNumAgents{30};
-constexpr bool    kEnableGreedyAgent{true};
-
-void showQ(const std::array<std::array<float, rl::QLearnAgent::kActionSize>, rl::QLearnAgent::kNumStates> &q_vals)
-{
-    for (const auto &action_vals_per_state : q_vals)
-    {
-        for (const auto &v : action_vals_per_state)
-        {
-            std::cout << v << " ";
-        }
-    }
-    std::cout << " *** " << std::endl;
-}
+// create an agent which always chooses the greedy action based on latest q-table of other learning agents
+constexpr bool kEnableGreedyAgent{false};
+// at the end of each episode, take the average of all q-tables and distribute back to all agents
+constexpr bool kShareCumulativeKnowledge{true};
 
 int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
 {
-    // constexpr size_t kReverseAmount{5};
-    // auto             crash_idx = env.race_track_->findNearestTrackIndexBruteForce({agent->pos_.x, agent->pos_.y});
-    // if (crash_idx > kReverseAmount)
-    //     return crash_idx - kReverseAmount;
-    // else
-    //     return crash_idx;
-
     return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
-    // return 5;
 }
 
 void shareCumulativeKnowledge(std::vector<rl::QLearnAgent> &q_agents)
 {
     // Take the average of action-value pairs and assign it to all agents
     std::array<std::array<float, rl::QLearnAgent::kActionSize>, rl::QLearnAgent::kNumStates> total_q_values;
-    std::array<std::array<float, rl::QLearnAgent::kActionSize>, rl::QLearnAgent::kNumStates> valid_ctr;
+    std::array<std::array<float, rl::QLearnAgent::kActionSize>, rl::QLearnAgent::kNumStates> valid_counts;
     for (auto &action_vals_per_state : total_q_values)
     {
         std::fill(action_vals_per_state.begin(), action_vals_per_state.end(), rl::QLearnAgent::kInvalidQVal);
     }
-    for (auto &v : valid_ctr)
+    for (auto &v : valid_counts)
     {
         std::fill(v.begin(), v.end(), 0.F);
     }
@@ -55,31 +38,25 @@ void shareCumulativeKnowledge(std::vector<rl::QLearnAgent> &q_agents)
     {
         for (size_t state_idx{0}; state_idx < rl::QLearnAgent::kNumStates; state_idx++)
         {
+            float &total_val   = total_q_values.at(state_idx).at(action_idx);
+            float &valid_count = valid_counts.at(state_idx).at(action_idx);
             for (const auto &q_agent : q_agents)
             {
-                const auto q_val{q_agent.q_values_.at(state_idx).at(action_idx)};
+                const auto &q_val{q_agent.q_values_.at(state_idx).at(action_idx)};
                 if (q_val != rl::QLearnAgent::kInvalidQVal)
                 {
-                    if (total_q_values.at(state_idx).at(action_idx) == rl::QLearnAgent::kInvalidQVal)
+                    if (total_val == rl::QLearnAgent::kInvalidQVal)
                     {
-                        total_q_values.at(state_idx).at(action_idx) = 0.F;
+                        total_val = 0.F;
                     }
-                    total_q_values.at(state_idx).at(action_idx) += q_val;
-                    valid_ctr.at(state_idx).at(action_idx) += 1.F;
+                    total_val += q_val;
+                    valid_count += 1.F;
                 }
             }
-        }
-    }
-
-    for (size_t action_idx{0}; action_idx < rl::QLearnAgent::kActionSize; action_idx++)
-    {
-        for (size_t state_idx{0}; state_idx < rl::QLearnAgent::kNumStates; state_idx++)
-        {
-            auto &q_val{total_q_values.at(state_idx).at(action_idx)};
-            if (q_val != rl::QLearnAgent::kInvalidQVal)
+            if (valid_count > 0.F)
             {
-                q_val /= valid_ctr.at(state_idx).at(action_idx);
-            }
+                total_val /= valid_count;
+            };
         }
     }
 
@@ -108,12 +85,16 @@ int main(int argc, char **argv)
 
     std::vector<rl::QLearnAgent> q_agents;
     q_agents.reserve(kNumAgents);
+    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
     for (int16_t i{0}; i < kNumAgents; i++)
     {
-        q_agents.emplace_back(rl::QLearnAgent({env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx],
-                                               env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]},
-                                              env.race_track_->headings_[RaceTrack::kStartingIdx],
-                                              0));
+        q_agents.emplace_back(
+            rl::QLearnAgent({start_pos_x, start_pos_y},
+                            env.race_track_->headings_[RaceTrack::kStartingIdx],
+                            i,
+                            env.race_track_->findNearestTrackIndexBruteForce({start_pos_x, start_pos_y}),
+                            static_cast<int64_t>(env.race_track_->track_data_points_.x_m.size())));
         env.setAgent(&q_agents.back());
     }
     // Make one agent totally greedy to track the performance
@@ -121,10 +102,7 @@ int main(int argc, char **argv)
     if constexpr (kEnableGreedyAgent)
     {
         greedy_agent = std::make_unique<rl::QLearnAgent>(
-            raylib::Vector2{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx],
-                            env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]},
-            env.race_track_->headings_[RaceTrack::kStartingIdx],
-            0);
+            raylib::Vector2{start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
         greedy_agent->epsilon_ = 0.F;
         greedy_agent->color_   = BLUE;
         env.setAgent(greedy_agent.get());
@@ -135,29 +113,35 @@ int main(int argc, char **argv)
 
     env.user_draw_callback_ = [&episode_idx, &q_agents]()
     {
-        std::ostringstream oss;
-        oss << std::fixed << std::setprecision(3)
-            << "Episode: " + std::to_string(episode_idx) + " eps: " + std::to_string(q_agents.front().epsilon_);
-        DrawText(oss.str().c_str(), kScreenWidth - 250, 40, 20, YELLOW);
+        char buffer[30];
+        snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, q_agents.front().epsilon_);
+        DrawText(buffer, kScreenWidth - 250, 40, 20, YELLOW);
     };
 
     bool all_done{false};
     while (true)
     {
+        std::cout << "------------ EPISODE " << episode_idx << " DONE ---------------" << std::endl;
+        std::cout << "eps: " << q_agents.front().epsilon_ << std::endl;
+
         // --- Reset --- //
         all_done = false;
 
         for (auto &q_agent : q_agents)
         {
-            q_agent.reset({env.race_track_->track_data_points_.x_m[reset_idx],
-                           env.race_track_->track_data_points_.y_m[reset_idx]},
-                          env.race_track_->headings_[reset_idx]);
+            q_agent.reset(
+                {env.race_track_->track_data_points_.x_m[reset_idx],
+                 env.race_track_->track_data_points_.y_m[reset_idx]},
+                env.race_track_->headings_[reset_idx],
+                env.race_track_->findNearestTrackIndexBruteForce({env.race_track_->track_data_points_.x_m[reset_idx],
+                                                                  env.race_track_->track_data_points_.y_m[reset_idx]}));
         }
         if constexpr (kEnableGreedyAgent)
         {
             greedy_agent->reset({env.race_track_->track_data_points_.x_m[reset_idx],
                                  env.race_track_->track_data_points_.y_m[reset_idx]},
-                                env.race_track_->headings_[reset_idx]);
+                                env.race_track_->headings_[reset_idx],
+                                0);
         }
 
         // need to get an initial observation for the intial action, after reset
@@ -207,9 +191,10 @@ int main(int argc, char **argv)
             {
                 for (auto &q_agent : q_agents)
                 {
-                    if (q_agent.epsilon_ > 0.05)
+                    if (q_agent.epsilon_ > 0.5)
                     {
-                        q_agent.epsilon_ *= rl::QLearnAgent::kEpsilonDiscount;
+                        // q_agent.epsilon_ *= rl::QLearnAgent::kEpsilonDiscount;
+                        q_agent.epsilon_ -= 0.5;
                     }
                     else
                     {
@@ -220,12 +205,11 @@ int main(int argc, char **argv)
             }
         }
 
-        std::cout << "------------ EPISODE " << episode_idx << " DONE ---------------" << std::endl;
-        std::cout << "eps: " << q_agents.front().epsilon_ << std::endl;
         episode_idx++;
         reset_idx = pickResetPosition(env, &q_agents.front());
         // Share the Q-tables across agents at the end of the episode
-        shareCumulativeKnowledge(q_agents);
+        if constexpr (kShareCumulativeKnowledge)
+            shareCumulativeKnowledge(q_agents);
         if constexpr (kEnableGreedyAgent)
             greedy_agent->q_values_ = q_agents.front().q_values_;
     }

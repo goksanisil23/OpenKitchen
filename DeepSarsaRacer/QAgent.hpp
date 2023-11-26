@@ -23,10 +23,9 @@ class QLearnAgent : public Agent
     static constexpr float kVelocity{60.0};
     static constexpr float kSteeringDelta{5}; // degrees
 
-    static constexpr float kEpsilon{0.9}; // probability of choosing random action (initial value)
-    // static constexpr float kEpsilonDiscount{0.9986}; // how much epsilon decreases to next episode
-    static constexpr float kEpsilonDiscount{0.92};
-    static constexpr float kGamma{0.8}; // discount factor btw current and future rewards
+    static constexpr float kEpsilon{0.9};          // probability of choosing random action (initial value)
+    static constexpr float kEpsilonDiscount{0.92}; // how much epsilon decreases to next episode
+    static constexpr float kGamma{0.8};            // discount factor btw current and future rewards
     static constexpr float kAlpha{0.2};
 
     // 5 rays, 3 regions based on proximity --> state
@@ -45,7 +44,13 @@ class QLearnAgent : public Agent
     QLearnAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    QLearnAgent(raylib::Vector2 start_pos, float start_rot, int16_t id) : Agent(start_pos, start_rot, id)
+    QLearnAgent(const raylib::Vector2 start_pos,
+                const float           start_rot,
+                const int16_t         id,
+                const size_t          start_idx,
+                const size_t          track_idx_len)
+        : Agent(start_pos, start_rot, id), prev_track_idx_{static_cast<int64_t>(start_idx)},
+          track_idx_len_{static_cast<int64_t>(track_idx_len)}
     {
 
         // Re-configure the sensor ray angles so that we only have 5 rays
@@ -132,55 +137,42 @@ class QLearnAgent : public Agent
         }
     }
 
-    void reset(const raylib::Vector2 &reset_pos, const float reset_rot)
+    void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
     {
         Agent::reset(reset_pos, reset_rot);
 
         sensor_hits_ = std::vector<Vec2d>(sensor_ray_angles_.size());
+
+        prev_track_idx_ = track_reset_idx;
     }
 
-    // Calculates the current rewards of the agent
-    float reward(const size_t nearest_track_idx) const
+    // Calculates the current reward of the agent
+    float reward(const size_t nearest_track_idx)
     {
         if (crashed_)
         {
             return -200.F;
         }
 
-        float  dist_based_reward{0.F};
-        size_t danger_ctr = 0;
-        // Penalize by the amount of rays reporting dangerously close
-        for (auto const hit : sensor_hits_)
-        {
-            auto const ray_dist = hit.norm();
-            if (ray_dist < kDangerProximity)
-            {
-                danger_ctr++;
-            }
-        }
-        if (danger_ctr >= 3)
-            dist_based_reward = -50;
-        else if (danger_ctr == 2)
-            dist_based_reward = 0;
-        else
-            dist_based_reward = 5;
-
         // Progression based reward
-        float          progression_award{0.F};
-        static int64_t prev_track_idx{static_cast<int64_t>(nearest_track_idx)};
-        int64_t        progression = nearest_track_idx - prev_track_idx;
-        if (progression > 0)
-            progression_award = 20.F;
-        else
-            progression_award = -20.F;
-        prev_track_idx = nearest_track_idx;
+        float   progression_reward{0.F};
+        int64_t progression = nearest_track_idx - prev_track_idx_;
 
-        return dist_based_reward + progression_award;
+        prev_track_idx_ = nearest_track_idx;
+
+        // Handle wrap around: progression can't be more than half the track length
+        progression_reward = std::abs(progression) > (track_idx_len_ / 2) ? track_idx_len_ - std::abs(progression)
+                                                                          : std::abs(progression);
+
+        return progression_reward;
     }
 
   public:
     size_t current_action_idx_;
     size_t current_state_idx_;
+
+    int64_t prev_track_idx_;
+    int64_t track_idx_len_;
 
     float epsilon_{kEpsilon};
 
