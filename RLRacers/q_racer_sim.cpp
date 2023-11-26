@@ -193,10 +193,9 @@ int main(int argc, char **argv)
             {
                 for (auto &q_agent : q_agents)
                 {
-                    if (q_agent.epsilon_ > 0.1)
+                    if (q_agent.epsilon_ > rl::QLearnAgent::kEpsilonDiscount)
                     {
-                        // q_agent.epsilon_ *= rl::QLearnAgent::kEpsilonDiscount;
-                        q_agent.epsilon_ -= 0.05;
+                        q_agent.epsilon_ -= rl::QLearnAgent::kEpsilonDiscount;
                     }
                     else
                     {

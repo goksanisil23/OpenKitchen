@@ -24,7 +24,7 @@ class QLearnAgent : public Agent
     static constexpr float kSteeringDelta{5}; // degrees
 
     static constexpr float kEpsilon{0.9};          // probability of choosing random action (initial value)
-    static constexpr float kEpsilonDiscount{0.92}; // how much epsilon decreases to next episode
+    static constexpr float kEpsilonDiscount{0.05}; // how much epsilon decreases to next episode
     static constexpr float kGamma{0.8};            // discount factor btw current and future rewards
     static constexpr float kAlpha{0.2};
 
@@ -100,7 +100,7 @@ class QLearnAgent : public Agent
         const float rand_val = static_cast<float>(GetRandomValue(0, RAND_MAX)) / static_cast<float>(RAND_MAX);
         if (rand_val < epsilon_)
         {
-            current_action_idx_ = static_cast<size_t>(GetRandomValue(0, 2));
+            current_action_idx_ = static_cast<size_t>(GetRandomValue(0, kActionSize - 1));
         }
         else
         {
