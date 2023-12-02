@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+
+# build folders
+build/
+
+# training images
+raw_images/
+raylib_images/
+
+# models
+*.torch
+*.onnx

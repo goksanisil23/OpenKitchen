@@ -64,7 +64,7 @@ Visualizer::Visualizer()
     SetTraceLogLevel(LOG_ERROR);
 
     window_ = std::make_unique<raylib::Window>(kScreenWidth, kScreenHeight, "");
-    window_->SetPosition(1750, 20);
+    window_->SetPosition(40, 20);
 
     // We draw in this texture manner since we want to get pixel values
     render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);

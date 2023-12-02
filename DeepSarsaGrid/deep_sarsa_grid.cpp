@@ -9,8 +9,6 @@ constexpr int            kGridSize    = 10;
 static constexpr int64_t kHiddenLayerSize{20};
 constexpr int            kCellSize = screenWidth / kGridSize;
 constexpr bool           kRandomReInit{true};
-constexpr double         kLearningRate(0.001);
-constexpr double         kEpsilon(0.9);
 
 enum Action
 {
@@ -19,6 +17,12 @@ enum Action
     LEFT,
     RIGHT,
     ACTION_COUNT
+};
+
+enum AgentType
+{
+    DeepSarsa,
+    DeepQ
 };
 
 struct State
@@ -51,15 +55,20 @@ struct Net : torch::nn::Module
     torch::nn::Linear fc1, fc2, out;
 };
 
-class DeepSarsaAgent
+class DeepRlAgent
 {
   public:
+    static constexpr AgentType kAgentType{AgentType::DeepQ};
+    static constexpr double    kLearningRate{0.001};
+    static constexpr double    kEpsilon{0.99};
+    static constexpr double    kEpsilonDecay{0.001};
+
     double               epsilon;
     std::shared_ptr<Net> q_network;
     torch::optim::Adam   optimizer;
 
   public:
-    DeepSarsaAgent()
+    DeepRlAgent()
         : epsilon(kEpsilon), q_network(std::make_shared<Net>()), optimizer(q_network->parameters(), kLearningRate)
     {
     }
@@ -87,13 +96,27 @@ class DeepSarsaAgent
         torch::Tensor new_state_tensor = torch::tensor({next_state.x, next_state.y}, torch::kFloat32);
 
         auto old_q_values = q_network->forward(old_state_tensor);
-        // auto next_q_values = q_network->forward(new_state_tensor);
-        auto target = old_q_values.clone().detach();
-        // if (done)
-        target[action] = reward;
-        // else
-        //     target[action] = reward + 0.9 * next_q_values[next_action].item<float>();
+        auto target       = old_q_values.clone().detach();
 
+        if constexpr (kAgentType == AgentType::DeepSarsa)
+        {
+            auto next_q_values = q_network->forward(new_state_tensor);
+            if (done)
+                target[action] = reward;
+            else
+                target[action] = reward + 0.9 * next_q_values[next_action].item<float>();
+        }
+        if constexpr (kAgentType == AgentType::DeepQ)
+        // DQN
+        {
+            static_cast<void>(next_action);
+            auto next_q_values     = q_network->forward(new_state_tensor);
+            auto max_next_q_values = std::get<0>(next_q_values.max(0)); // get the max q-value
+            if (done)
+                target[action] = reward;
+            else
+                target[action] = reward + 0.9 * max_next_q_values;
+        }
         optimizer.zero_grad();
         torch::mse_loss(old_q_values, target).backward();
         optimizer.step();
@@ -273,7 +296,7 @@ void resetState(State &state)
     }
 }
 
-void showAllQValues(const DeepSarsaAgent &agent)
+void showAllQValues(const DeepRlAgent &agent)
 {
     for (int i = 0; i < kGridSize; i++)
     {
@@ -296,7 +319,7 @@ int main(void)
     State state;
     resetState(state);
 
-    DeepSarsaAgent agent;
+    DeepRlAgent agent;
     // best-action/value for a cell
     std::array<std::array<std::pair<Action, float>, kGridSize>, kGridSize> q_values_grid = {};
 
@@ -326,20 +349,23 @@ int main(void)
         }
         else if (next_state == goal)
         {
-            done   = true;
-            reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
+            done = true;
+            // reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
+            reward = maxDist;
             goal_reach_ctr++;
         }
         else
         {
-            reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
+            // reward = 0;
+            reward = 1;
+            // reward = maxDist - std::sqrt(std::pow(next_state.x - goal.x, 2) + std::pow(next_state.y - goal.y, 2));
         }
 
         next_action = agent.chooseAction(next_state);
 
         agent.updateQNetwork(state, action, reward, next_state, next_action, done);
 
-        // Update the entired grid's greedy action/values
+        // Update the entire grid's greedy action/values
         for (int i = 0; i < kGridSize; i++)
         {
             for (int j = 0; j < kGridSize; j++)
@@ -356,13 +382,23 @@ int main(void)
             resetState(state);
             done   = false;
             reward = 0.;
+
+            // // decay the epsilon
+            // if (agent.epsilon > 5. * DeepRlAgent::kEpsilonDecay)
+            // {
+            //     agent.epsilon -= DeepRlAgent::kEpsilonDecay;
+            // }
+            // else
+            // {
+            //     SetTargetFPS(10);
+            // }
         }
 
         // Show all q values
         // showAllQValues(agent);
 
-        // std::cout << "total: " << ctr << " crash: " << crash_ctr << " goal_reach: " << goal_reach_ctr
-        //           << " eps: " << agent.epsilon << std::endl;
+        std::cout << "total: " << ctr << " crash: " << crash_ctr << " goal_reach: " << goal_reach_ctr
+                  << " eps: " << agent.epsilon << std::endl;
     }
 
     CloseWindow();
