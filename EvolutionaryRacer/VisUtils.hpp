@@ -100,11 +100,5 @@ void drawTrackPointNumbers(const RaceTrack::TrackData &track_data_points)
         DrawText(TextFormat("%lu", i), track_data_points.x_m[i], track_data_points.y_m[i], 10, BLACK);
     }
 }
-
-void drawTrackTitle(const std::string &track_name)
-{
-    static Font custom_font = LoadFont("CooperHewitt-Semibold.otf");
-    DrawTextEx(custom_font, track_name.c_str(), {kScreenWidth / 2, 10}, 25, 3, ORANGE);
-}
 } // namespace util
 } // namespace genetic

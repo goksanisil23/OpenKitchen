@@ -166,9 +166,15 @@ void Visualizer::drawSensorRays(std::vector<Pixel> &pixels_until_hit, raylib::Im
 
     for (const auto &pix : pixels_until_hit)
     {
-        render_buffer.DrawPixel(pix.x, pix.y);
+        render_buffer.DrawPixel(pix.x, pix.y, raylib::Color::DarkPurple());
     }
     pixels_until_hit.clear();
+}
+
+void Visualizer::drawTrackTitle(const std::string &track_name)
+{
+    static Font custom_font = LoadFont("../Utils/CooperHewitt-Semibold.otf");
+    DrawTextEx(custom_font, track_name.c_str(), {kScreenWidth / 2, 10}, 25, 3, ORANGE);
 }
 
 void Visualizer::render()

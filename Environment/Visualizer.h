@@ -33,6 +33,8 @@ class Visualizer
     // returns sensonr hit points and pixels along the ray until the hit points
     void updateSensor(Agent &agent, const raylib::Image &render_buffer);
 
+    void drawTrackTitle(const std::string &name);
+
     void drawSensorRays(std::vector<Pixel> &pixels_until_hit, raylib::Image &render_buffer);
 
     // Check pixels that would be occupied by the outer edge of the robot, whether they instersect track boundaries

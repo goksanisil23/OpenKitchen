@@ -96,6 +96,7 @@ class Environment
             // genetic::util::drawActionBar(agents, iteration);
             // genetic::util::drawEpisodeNum(episode_idx);
             // genetic::util::drawTrackTitle(race_track->track_name_);
+            visualizer_->drawTrackTitle(race_track_->track_name_);
 
             if (user_draw_callback_)
                 user_draw_callback_();
