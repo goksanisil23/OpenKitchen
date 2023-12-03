@@ -16,34 +16,34 @@ target_link_libraries(example-app "${TORCH_LIBRARIES}" pthread)
 target_compile_options(example-app PUBLIC ${COMPILER_FLAGS})
 
 ################## Deep Sarsa ################## 
-# set(DEEP_SARSA_SRCS
-#     ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-#     ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/DeepSarsaAgent.hpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/GreedyAgent.hpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/Environment.hpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/Network.hpp
-#     ${CMAKE_CURRENT_SOURCE_DIR}/deep_sarsa_racer_sim.cpp
-# )
+set(DEEP_SARSA_SRCS
+    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
+    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DeepSarsaAgent.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/GreedyAgent.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Environment.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Network.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/deep_sarsa_racer_sim.cpp
+)
 
-# add_executable(${CMAKE_PROJECT_NAME} ${DEEP_SARSA_SRCS})
+add_executable(${CMAKE_PROJECT_NAME} ${DEEP_SARSA_SRCS})
 
-# target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE 
-#     ${RAYLIB_CPP_INCLUDE_DIR}
-#     ${RAYLIB_INCLUDE_DIR}
-#     ${SHARED_MEM_LIB_DIR}
-#     ${EIGEN_DIR}
-# )
+target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE 
+    ${RAYLIB_CPP_INCLUDE_DIR}
+    ${RAYLIB_INCLUDE_DIR}
+    ${SHARED_MEM_LIB_DIR}
+    ${EIGEN_DIR}
+)
 
-# target_link_libraries(${CMAKE_PROJECT_NAME} "${TORCH_LIBRARIES}" pthread raylib dl rt)
-# target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE ${RAYLIB_LINK_DIR})
+target_link_libraries(${CMAKE_PROJECT_NAME} "${TORCH_LIBRARIES}" pthread raylib dl rt)
+target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE ${RAYLIB_LINK_DIR})
 
-# target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
-# ${CMAKE_CURRENT_SOURCE_DIR}
-# ${ENVIRONMENT_INCLUDE_DIR}
-# )
+target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
+${CMAKE_CURRENT_SOURCE_DIR}
+${ENVIRONMENT_INCLUDE_DIR}
+)
 
-# target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC ${COMPILER_FLAGS})
+target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC ${COMPILER_FLAGS})
 
 
 
