@@ -90,6 +90,13 @@ void Agent::move()
     }
 }
 
+// Follows the center points of the track
+void Agent::setPose(const raylib::Vector2 pos, const float rot)
+{
+    pos_ = pos;
+    rot_ = rot;
+}
+
 // Movement based on direct setting of speed and steering
 void Agent::move2()
 {

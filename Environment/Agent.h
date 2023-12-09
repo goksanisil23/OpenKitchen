@@ -36,6 +36,7 @@ class Agent
     void move();
     void move2();
     void manualMove();
+    void setPose(const raylib::Vector2 pos, const float rot);
     bool isDone() const;
 
     virtual void updateAction() = 0;

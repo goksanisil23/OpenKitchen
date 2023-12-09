@@ -41,3 +41,6 @@ raylib_images/
 # models
 *.torch
 *.onnx
+*.pth
+
+__pycache__/
