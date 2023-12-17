@@ -1,2 +1,14 @@
 # OpenKitchen
-Playground space for me to remember certain programming concepts &amp; algorithms that I've experimented with.
+Algorithms I'm experimenting with ...
+
+## [Colony Learning via Evolution on a Shallow MLP] (/EvolutionaryRacer)
+
+## [Semantic Segmentation] (/RayCastRacer)
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/SemSegRacer/resources/inference_gpu.gif" width=52% height=30%>
+
+## [Dynamic Window Path Planning] (/DynamicWindow)
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/DynamicWindow/dynamic_window.gif" width=52% height=30%>
+
+## [Q Learning with 2D Raycast on a Racetrack] (/RLRacers/Q_Learning)
+
+## [REINFORCE with 2D Raycast on a Racetrack] (/RLRacers/Reinforce)
