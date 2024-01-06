@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import torch
-from laser_2d_autoencoder import Autoencoder, ScanDataset
+from Laser2dAutoencoder import Autoencoder, ScanDataset
 from torch.utils.data import DataLoader
 
 folder_path = "collect_data_racetrack/build/point_clouds/"

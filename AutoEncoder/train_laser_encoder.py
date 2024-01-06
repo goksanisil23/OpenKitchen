@@ -3,11 +3,11 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from laser_2d_autoencoder import Autoencoder, ScanDataset
+from Laser2dAutoencoder import Autoencoder, ScanDataset
 from torch.utils.data import DataLoader
 
 ### HYPERPARAMETERS ###
-N_EPOCH = 200
+N_EPOCH = 500
 BATCH_SIZE = 64
 LEARNING_RATE = 0.001
 
