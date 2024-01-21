@@ -15,11 +15,11 @@ struct ReplayBuffer
 {
     static constexpr size_t kCapacity{1'000'000};
 
-    CircularVector<std::vector<float>> states;
-    CircularVector<std::vector<float>> next_states;
-    CircularVector<Agent::Action>      actions;
-    CircularVector<float>              rewards;
-    CircularVector<float>              dones;
+    CircularVector<State>         states;
+    CircularVector<State>         next_states;
+    CircularVector<Agent::Action> actions;
+    CircularVector<float>         rewards;
+    CircularVector<float>         dones;
 
     ReplayBuffer()
     {
@@ -43,7 +43,7 @@ struct ReplayBuffer
     {
         Samples samples;
         srand(time(NULL));
-        int upper = states.size();
+        int upper = states.size() - 1;
         int lower = 0;
 
         std::vector<int> chosen_idxs;
@@ -55,46 +55,23 @@ struct ReplayBuffer
             chosen_idxs.push_back(rand_idx);
         }
 
-        std::vector<float> chosen_states_flat;
-        std::vector<float> chosen_next_states_flat;
-        std::vector<float> chosen_actions_flat;
-        std::vector<float> chosen_rewards_flat;
-        std::vector<float> chosen_dones_flat;
-
-        chosen_states_flat.reserve(batch_size * states[0].size());
-        chosen_next_states_flat.reserve(batch_size * next_states[0].size());
-        chosen_actions_flat.reserve(batch_size * 2);
-        chosen_rewards_flat.reserve(batch_size);
-        chosen_dones_flat.reserve(batch_size);
+        torch::Tensor chosen_states_tensor      = torch::empty({batch_size, 5}); // 5 = state size
+        torch::Tensor chosen_next_states_tensor = torch::empty({batch_size, 5});
+        torch::Tensor chosen_actions_tensor     = torch::empty({batch_size, 2}); // 2 = actions size
+        torch::Tensor chosen_rewards_tensor     = torch::empty({batch_size, 1});
+        torch::Tensor chosen_dones_tensor       = torch::empty({batch_size, 1});
 
         // Flatten for torch conversion
+        size_t batch_idx{0};
         for (auto idx : chosen_idxs)
         {
-            const auto &chosen_states = states[idx];
-            chosen_states_flat.insert(chosen_states_flat.end(), chosen_states.begin(), chosen_states.end());
-
-            const auto &chosen_next_states = next_states[idx];
-            chosen_next_states_flat.insert(
-                chosen_next_states_flat.end(), chosen_next_states.begin(), chosen_next_states.end());
-
-            chosen_actions_flat.push_back(actions[idx].acceleration_delta);
-            chosen_actions_flat.push_back(actions[idx].steering_delta);
-
-            chosen_rewards_flat.push_back(rewards[idx]);
-
-            chosen_dones_flat.push_back(dones[idx]);
+            chosen_states_tensor[batch_idx]      = torch::from_blob(states[idx].data(), {5}, torch::kFloat32);
+            chosen_next_states_tensor[batch_idx] = torch::from_blob(next_states[idx].data(), {5}, torch::kFloat32);
+            chosen_actions_tensor[batch_idx]     = torch::from_blob(&(actions[idx]), {2}, torch::kFloat32);
+            chosen_rewards_tensor[batch_idx]     = torch::from_blob(&(rewards[idx]), {1}, torch::kFloat32);
+            chosen_dones_tensor[batch_idx]       = torch::from_blob(&(dones[idx]), {1}, torch::kFloat32);
+            batch_idx++;
         }
-
-        torch::Tensor chosen_states_tensor =
-            torch::from_blob(chosen_states_flat.data(), {static_cast<int64_t>(states[0].size()), batch_size});
-        torch::Tensor chosen_next_states_tensor =
-            torch::from_blob(chosen_next_states_flat.data(), {static_cast<int64_t>(next_states[0].size()), batch_size});
-        torch::Tensor chosen_actions_tensor =
-            torch::from_blob(chosen_actions_flat.data(), {static_cast<int64_t>(2), batch_size});
-        torch::Tensor chosen_rewards_tensor =
-            torch::from_blob(chosen_rewards_flat.data(), {static_cast<int64_t>(1), batch_size});
-        torch::Tensor chosen_dones_tensor =
-            torch::from_blob(chosen_dones_flat.data(), {static_cast<int64_t>(1), batch_size});
 
         samples.states      = chosen_states_tensor.clone();
         samples.next_states = chosen_next_states_tensor.clone();

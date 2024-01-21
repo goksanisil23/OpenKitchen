@@ -13,8 +13,8 @@ struct Actor : torch::nn::Module
     static constexpr int32_t kHiddenLayerSize1{400};
     static constexpr int32_t kHiddenLayerSize2{300};
 
-    static constexpr float kOut1Max{500}; // direct m/s setting
-    static constexpr float kOut2Max{10};  // steering delta degrees
+    static constexpr float kOut1Max{50}; // direct m/s setting
+    static constexpr float kOut2Max{5};  // steering delta degrees
 
     // Actor network estimating the State->Action
     Actor()
@@ -32,7 +32,8 @@ struct Actor : torch::nn::Module
         x = torch::relu(x);
         x = l3->forward(x);
         x = torch::tanh(x); // [-1,1]
-        return x * torch::tensor({kOut1Max, kOut2Max});
+        return x * torch::tensor({kOut1Max, kOut2Max}) +
+               torch::tensor({kOut1Max, 0.F}); // to map from [-50,50] to [0,100]
     }
 
     torch::nn::Linear l1{nullptr}, l2{nullptr}, l3{nullptr};

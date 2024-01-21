@@ -36,18 +36,13 @@ class CircularVector
         return data_[index];
     }
 
+    T &operator[](const size_t index)
+    {
+        return data_[index];
+    }
+
     size_t size() const
     {
         return data_.size();
-    }
-
-    T *data()
-    {
-        return data_.data();
-    }
-
-    const T *data() const
-    {
-        return data_.data();
     }
 };

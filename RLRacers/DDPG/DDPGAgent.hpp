@@ -105,6 +105,7 @@ class DDPGAgent : public Agent
 
     void updateDDPG()
     {
+        std::cout << "Replay buffer size: " << replay_buffer_.states.size() << std::endl;
         for (size_t iter{0}; iter < num_update_steps_; iter++)
         {
             // Sample replay buffer

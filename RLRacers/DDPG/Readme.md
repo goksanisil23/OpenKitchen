@@ -1,13 +1,13 @@
 # Deep Deterministic Policy Gradient
 
 ## Actor
-- Actor network represents the policy: [States] -> [Actions]
+- Actor network represents the policy: [State] -> [Action]
 - Actor's parameters are updated to maximize the Critic's value estimates.
-    - Given the current state and the action that the actor currently associates to it, the critic produces a value estimate.
+    - Given the current state and the action that actor currently associates to the state, the critic produces a value estimate.
         - This value is maximized during training process (or the inverse is minimized).
 
 ## Critic
-- Critic network represents the estimated Q-value of taking an action in a given state.
+- Critic network represents the estimated Q-value of taking an action in a given state: [State,Action] -> [Value]
 - Temporal difference (TD) error is calculated as the difference between predicted and target Q-values.
     - Target-Q is calculated using the reward from the current action plus the estimated Q-value of the next state-action pair, discounted by factor gamma.
         - Next state action pair is obtained from the samples within the replay buffer using the frozen target actor and critic networks.
