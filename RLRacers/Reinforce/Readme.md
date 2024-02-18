@@ -1,4 +1,4 @@
-# Q-learning
+# REINFORCE
 Simple REINFORCE algorithm. In the raycast environment, we have:
 - 5 rays providing distance measurements
 - Each ray measurement is normalized using the max range of raycast before fed into the network.

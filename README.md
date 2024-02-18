@@ -13,3 +13,5 @@ Algorithms I'm experimenting with ...
 <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/RLRacers/Q_Learning/resources/q_learning_sample.png" width=52% height=30%>
 
 ## [REINFORCE with 2D Raycast on a Racetrack](/RLRacers/Reinforce)
+
+## [DDPG with 2D Raycast on a Racetrack](/RLRacers/DDPG)

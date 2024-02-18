@@ -14,3 +14,6 @@
 - Training process minimizes the TD error.
 
 The target actor & critic networks are updated using "soft updates": a weighted sum of their current weights and their corresponding learnt networks, where learnt network's influence is kept low. (To ensure target networks change slowly over time for stability)
+
+
+* DDPG allows to have continuous action space, via the tanh function at the end of forward pass.

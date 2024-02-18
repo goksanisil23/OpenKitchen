@@ -17,7 +17,6 @@ set(DDPG_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/DDPGAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ddpg_sim.cpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/test.cpp
 )
 
 add_executable(DDPG ${DDPG_SRCS})
