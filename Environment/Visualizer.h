@@ -30,6 +30,9 @@ class Visualizer
 
     void drawAgent(Agent &agent, raylib::Image &render_buffer);
 
+    // When called, the camera follows this agent
+    void setAgentToFollow(const Agent *agent);
+
     // returns sensonr hit points and pixels along the ray until the hit points
     void updateSensor(Agent &agent, const raylib::Image &render_buffer);
 
@@ -40,18 +43,13 @@ class Visualizer
     // Check pixels that would be occupied by the outer edge of the robot, whether they instersect track boundaries
     bool checkAgentCollision(const raylib::Image &render_buffer, const Agent &agent);
 
-    void enableImageSaving(const std::string &image_save_dir);
-
-    void enableImageSharing(const char *shm_filename);
-
     void disableDrawing();
 
     void render();
 
     void close();
 
-    void shareCurrentImage();
-    void saveImage();
+    void saveImage(const std::string &name);
 
     static bool isDrivableAreaPixel(const raylib::Color &pixel_color);
     static bool isBarrierPixel(const raylib::Color &pixel_color);
@@ -63,16 +61,12 @@ class Visualizer
                                        const raylib::Color       color);
 
   public:
-    std::unique_ptr<raylib::Camera2D> camera_;
-    std::unique_ptr<raylib::Window>   window_;
-    raylib::RenderTexture             render_target_;
-    raylib::Image                     current_frame_;
+    raylib::Camera2D                camera_;
+    std::unique_ptr<raylib::Window> window_;
+    raylib::RenderTexture           render_target_;
+    raylib::Image                   current_frame_;
 
-    bool enable_img_saving_{false};
-    bool enable_img_sharing_{false};
-
-    const size_t img_saving_period_{1};
-    std::string  image_save_dir_{};
+    const Agent *agent_to_follow_{nullptr};
 
     // Q<ImageMsg<kScreenWidth, kScreenHeight>, 4> *q_; // shared memory object
 };

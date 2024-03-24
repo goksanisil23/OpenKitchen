@@ -81,6 +81,7 @@
                 "eigenvalues": "cpp",
                 "core": "cpp",
                 "*.txx": "cpp",
-                "cassert": "cpp"
+                "cassert": "cpp",
+                "*.ipp": "cpp"
         }
 }

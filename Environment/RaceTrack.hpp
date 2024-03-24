@@ -130,8 +130,8 @@ class RaceTrack
         // Skip the header line
         std::getline(file, line);
         constexpr float kTrackWidthScale{3.0};
-        constexpr float kTrackWidthMaxLimit{20.0};
-        constexpr float kTrackWidthMinLimit{5.0};
+        constexpr float kTrackWidthMaxLimit{17.0};
+        constexpr float kTrackWidthMinLimit{4.0};
 
         while (std::getline(file, line))
         {

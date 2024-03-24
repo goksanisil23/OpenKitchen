@@ -68,6 +68,11 @@ Visualizer::Visualizer()
 
     // We draw in this texture manner since we want to get pixel values
     render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);
+
+    camera_.offset =
+        Vector2{window_->GetWidth() / 2.0f, window_->GetHeight() / 2.0f}; // Center the camera view in the window
+    camera_.rotation = 0.0f;
+    camera_.zoom     = 3.0f;
 }
 
 void Visualizer::activateDrawing()
@@ -87,10 +92,15 @@ void Visualizer::drawAgent(Agent &agent, raylib::Image &render_buffer)
                                    agent_texture_coord.y + agent.radius_ * -sin(DEG2RAD * agent.rot_)};
     render_buffer.DrawLine(agent_texture_coord, heading_end, WHITE);
 
-    if (Agent::kDrawSensorRays)
+    if (agent.draw_sensor_rays_)
     {
         drawSensorRays(agent.pixels_until_hit_, render_buffer);
     }
+}
+
+void Visualizer::setAgentToFollow(const Agent *agent)
+{
+    agent_to_follow_ = agent;
 }
 
 void Visualizer::updateSensor(Agent &agent, const raylib::Image &render_buffer)
@@ -129,7 +139,7 @@ void Visualizer::updateSensor(Agent &agent, const raylib::Image &render_buffer)
                     hit_found = true;
                     break;
                 }
-                else if (Agent::kDrawSensorRays) // drawing ray paths
+                else if (agent.draw_sensor_rays_) // drawing ray paths
                 {
                     agent.pixels_until_hit_.push_back(pix);
                 }
@@ -179,56 +189,42 @@ void Visualizer::drawTrackTitle(const std::string &track_name)
 
 void Visualizer::render()
 {
-    window_->BeginDrawing();
-    ClearBackground(BLACK);
-    render_target_.GetTexture().Draw({0.F,
-                                      0.F,
-                                      static_cast<float>(render_target_.texture.width),
-                                      static_cast<float>(-render_target_.texture.height)},
-                                     {0.F, 0.F},
-                                     WHITE);
-    window_->DrawFPS();
-    window_->EndDrawing();
-}
 
-void Visualizer::enableImageSaving(const std::string &image_save_dir)
-{
-    enable_img_saving_ = true;
-
-    image_save_dir_ = image_save_dir;
-
-    // Create directory for the training images to be saved
-    auto save_dir_fs{std::filesystem::path(image_save_dir_)};
-    if (!std::filesystem::exists(save_dir_fs))
+    if (!agent_to_follow_)
     {
-        std::filesystem::create_directory(save_dir_fs);
+        window_->BeginDrawing();
+        ClearBackground(BLACK);
+        render_target_.GetTexture().Draw({0.F,
+                                          0.F,
+                                          static_cast<float>(render_target_.texture.width),
+                                          static_cast<float>(-render_target_.texture.height)},
+                                         {0.F, 0.F},
+                                         WHITE);
+        window_->DrawFPS();
+        window_->EndDrawing();
     }
-}
+    else
+    {
+        camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+        window_->BeginDrawing();
+        ClearBackground(BLACK);
+        BeginMode2D(camera_);
+        render_target_.GetTexture().Draw({0.F,
+                                          0.F,
+                                          static_cast<float>(render_target_.texture.width),
+                                          static_cast<float>(-render_target_.texture.height)},
+                                         {0.F, 0.F},
+                                         WHITE);
 
-void Visualizer::enableImageSharing(const char *shm_filename)
-{
-    enable_img_sharing_ = true;
-
-    // constexpr int kShmQueueSize{4};
-    // q_ = shmmap<ImageMsg<kScreenWidth, kScreenHeight>, kShmQueueSize>(shm_filename);
-    // assert(q_);
+        EndMode2D();
+        window_->DrawFPS();
+        window_->EndDrawing();
+    }
 }
 
 void Visualizer::disableDrawing()
 {
-    static size_t ctr{0};
-
     render_target_.EndMode();
-    ctr++;
-    if (enable_img_saving_)
-    {
-        if (ctr % img_saving_period_ == 0)
-            saveImage();
-    }
-    if (enable_img_sharing_)
-    {
-        shareCurrentImage();
-    }
 }
 
 void Visualizer::close()
@@ -237,39 +233,9 @@ void Visualizer::close()
     window_->Close();
 }
 
-void Visualizer::shareCurrentImage()
+void Visualizer::saveImage(const std::string &name)
 {
-    // static size_t ctr{0};
-    // raylib::Image img = LoadImageFromScreen();
-    // Copy the image data to struct raylib image is row-major order, RGBA/RGBA/RGBA/...
-    // unsigned char *img_data = (unsigned char *)(img.data);
-    // q_->write(
-    //     [img_data](ImageMsg<kScreenWidth, kScreenHeight> &msg)
-    //     {
-    //         msg.idx = ctr;
-    //         for (int i{0}; i < kScreenHeight * kScreenHeight * 4; i++)
-    //         {
-    //             msg.data[i] = (uint8_t)(img_data[i]);
-    //         }
-    //     });
-
-    // Raylib-cpp's raylib::Image has a destructor that calls Unload() that free's the img.data
-    // free(img.data);
-
-    // ctr++;
-}
-
-void Visualizer::saveImage()
-{
-    static int32_t     img_ctr{0};
-    std::ostringstream ss;
-    ss << std::setfill('0') << std::setw(5) << img_ctr << ".png";
-    std::string image_path = image_save_dir_ + ss.str();
-    TakeScreenshot(image_path.c_str());
-    Image screenshot = LoadImage(image_path.c_str());
-    ExportImage(screenshot, (image_path).c_str());
-    UnloadImage(screenshot);
-    img_ctr++;
+    TakeScreenshot(name.c_str());
 }
 
 bool Visualizer::isDrivableAreaPixel(const raylib::Color &pixel_color)

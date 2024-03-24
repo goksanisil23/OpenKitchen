@@ -97,17 +97,19 @@ class Environment
             // genetic::util::drawActionBar(agents, iteration);
             // genetic::util::drawEpisodeNum(episode_idx);
             // genetic::util::drawTrackTitle(race_track->track_name_);
-            visualizer_->drawTrackTitle(race_track_->track_name_);
+            // visualizer_->drawTrackTitle(race_track_->track_name_);
 
             if (user_draw_callback_)
+            {
                 user_draw_callback_();
+            }
         }
         visualizer_->disableDrawing();
 
         // -------- 3) Direct render buffer manipulation for sensors -------- //
         {
-            raylib::Image render_buffer;
-            render_buffer.Load(visualizer_->render_target_.texture);
+            render_buffer_ = std::make_unique<raylib::Image>();
+            render_buffer_->Load(visualizer_->render_target_.texture);
             // We first check the collision before drawing any sensor or agents to avoid overlap
             // NOTE: Sensor update needs to happen before drawing multiple agents since we emulate parallel simulators here so agents
             // should NOT see each other's world.
@@ -115,21 +117,21 @@ class Environment
             {
                 if (!agent->crashed_)
                 {
-                    if (visualizer_->checkAgentCollision(render_buffer, *agent))
+                    if (visualizer_->checkAgentCollision(*render_buffer_, *agent))
                     {
                         agent->crashed_ = true;
                     }
                     else
                     {
-                        visualizer_->updateSensor(*agent, render_buffer);
+                        visualizer_->updateSensor(*agent, *render_buffer_);
                     }
                 }
             }
             for (auto &agent : agents_)
             {
-                visualizer_->drawAgent(*agent, render_buffer);
+                visualizer_->drawAgent(*agent, *render_buffer_);
             }
-            UpdateTexture(visualizer_->render_target_.texture, render_buffer.data);
+            UpdateTexture(visualizer_->render_target_.texture, render_buffer_->data);
         }
         // -------- 4) Render the final texture -------- //
         visualizer_->render();
@@ -139,6 +141,7 @@ class Environment
     std::unique_ptr<RaceTrack>       race_track_;
     std::unique_ptr<env::Visualizer> visualizer_;
     std::vector<Agent *>             agents_;
+    std::unique_ptr<raylib::Image>   render_buffer_{nullptr};
 
     std::function<void()> user_draw_callback_{nullptr};
 };

@@ -1,0 +1,137 @@
+#include <cstring>
+#include <fcntl.h>
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <memory>
+#include <semaphore.h>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <vector>
+
+#include "Environment/Environment.hpp"
+
+// Agent that listens to a python process doing the inference
+// Sends the measurements over shared memory and receives the actions back
+class PythonInferAgent : public Agent
+{
+  public:
+    static constexpr size_t kSharedMemSizeBytesMeasurement{1600 * 1400 * 4};
+    static constexpr size_t kSharedMemSizeBytesActions{4 * 2};
+
+    PythonInferAgent(const raylib::Vector2 start_pos, const float start_rot, const int16_t id)
+        : Agent(start_pos, start_rot, id), measurement_buffer_(kSharedMemSizeBytesMeasurement, 0)
+    {
+        // Setup shared memory and semaphores
+        int shm_meas_fd   = shm_open("shm_measurements", O_CREAT | O_RDWR, 0666);
+        int shm_action_fd = shm_open("shm_actions", O_CREAT | O_RDWR, 0666);
+        ftruncate(shm_meas_fd, kSharedMemSizeBytesMeasurement);
+        ftruncate(shm_action_fd, kSharedMemSizeBytesMeasurement);
+        shmem_measurements_ptr =
+            mmap(0, kSharedMemSizeBytesMeasurement, PROT_WRITE | PROT_READ, MAP_SHARED, shm_meas_fd, 0);
+        shmem_actions_ptr = mmap(0, kSharedMemSizeBytesActions, PROT_WRITE | PROT_READ, MAP_SHARED, shm_action_fd, 0);
+
+        assert(shmem_measurements_ptr != MAP_FAILED);
+        assert(shmem_actions_ptr != MAP_FAILED);
+
+        sem_measurements_ = sem_open("/sem1", O_CREAT, 0666, 0);
+        sem_actions_      = sem_open("/sem2", O_CREAT, 0666, 0);
+
+        current_action_.acceleration_delta = 0.F;
+        current_action_.steering_delta     = 0.F;
+    }
+    void updateAction()
+    {
+        // Denormalize actions in [-1,1] from the neural network
+        current_action_.acceleration_delta = (action_response_buffer_[0] * 50.F) + 50.F;
+        current_action_.steering_delta     = action_response_buffer_[1] * 180.F;
+        std::cout << "acc: " << current_action_.acceleration_delta << " str: " << current_action_.steering_delta
+                  << std::endl;
+    }
+
+    void sendMeasurementsReceiveAction(rl::Environment &env)
+    {
+
+        if (env.visualizer_->agent_to_follow_) // Use in map-view mode
+        {
+            Image const img{raylib::Image::LoadFromScreen()};
+            std::memcpy(shmem_measurements_ptr, img.data, kSharedMemSizeBytesMeasurement);
+            UnloadImage(img);
+        }
+        else // Use in follow-agent mode
+        {
+            std::memcpy(shmem_measurements_ptr, env.render_buffer_->data, kSharedMemSizeBytesMeasurement);
+        }
+
+        // Signal Python that data is ready
+        sem_post(sem_measurements_);
+        // Wait for Python to process and respond
+        sem_wait(sem_actions_);
+        // Read response
+        memcpy(action_response_buffer_, shmem_actions_ptr, sizeof(action_response_buffer_));
+    }
+
+    void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
+    {
+        Agent::reset(reset_pos, reset_rot);
+
+        sensor_hits_ = std::vector<Vec2d>(sensor_ray_angles_.size());
+    }
+
+  private:
+    sem_t *sem_measurements_;
+    sem_t *sem_actions_;
+    void  *shmem_measurements_ptr;
+    void  *shmem_actions_ptr;
+
+    std::vector<uint8_t> measurement_buffer_;
+    float                action_response_buffer_[2]; // acceleration & steering
+};
+
+int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
+{
+    return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
+}
+
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        std::cerr << "Provide a folder path for race track database\n";
+        return -1;
+    }
+
+    rl::Environment   env(argv[1]);
+    const std::string track_name{env.race_track_->track_name_};
+
+    const float      start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float      start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    PythonInferAgent agent({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
+    env.setAgent(&agent);
+    env.visualizer_->setAgentToFollow(&agent);
+    agent.setSensorRayDrawing(false);
+
+    int32_t reset_idx{RaceTrack::kStartingIdx};
+    while (true)
+    {
+        agent.reset(
+            {env.race_track_->track_data_points_.x_m[reset_idx], env.race_track_->track_data_points_.y_m[reset_idx]},
+            env.race_track_->headings_[reset_idx],
+            env.race_track_->findNearestTrackIndexBruteForce({env.race_track_->track_data_points_.x_m[reset_idx],
+                                                              env.race_track_->track_data_points_.y_m[reset_idx]}));
+        while (!agent.crashed_)
+        {
+            agent.sendMeasurementsReceiveAction(env);
+            agent.updateAction();
+            env.step(); // agent moves in the environment with current_action, produces next_state
+        }
+        reset_idx = pickResetPosition(env, &agent);
+    }
+
+    return 0;
+}

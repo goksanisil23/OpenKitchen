@@ -19,7 +19,7 @@ class PotFieldAgent : public Agent
 {
   public:
     static constexpr size_t kLookAheadIdx        = 5; // race track index lookahead
-    static constexpr float  kAttractiveConstant  = 50.0f;
+    static constexpr float  kAttractiveConstant  = 100.0f;
     static constexpr float  kRepulsiveConstant   = 10.0f;
     static constexpr float  kObstacleEffectRange = 5.0f; // Range within which obstacles exert force
 
@@ -66,7 +66,7 @@ class PotFieldAgent : public Agent
                 // COmpute force vector for this obstacle
                 float force_magnitude =
                     kRepulsiveConstant * (1.f / sensor_hits_[i].norm() - 1.f / kObstacleEffectRange);
-                std::cout << "Repulsion: " << force_magnitude << std::endl;
+                // std::cout << "Repulsion: " << force_magnitude << std::endl;
                 repulsive_force.x += std::cos(angle * M_PI / 180.f) * force_magnitude;
                 repulsive_force.y += std::sin(angle * M_PI / 180.f) * force_magnitude;
             }
@@ -75,9 +75,14 @@ class PotFieldAgent : public Agent
         raylib::Vector2 total_force = attractive_force - repulsive_force;
 
         // Determine control based on forces
-        auto goal_rotation                 = std::atan2(total_force.y, total_force.x) * 180.F / M_PI;
-        current_action_.acceleration_delta = total_force.Length(); // goal speed
+        auto goal_rotation = std::atan2(total_force.y, total_force.x) * 180.F / M_PI;
+        // Bound to [0,100]
+        current_action_.acceleration_delta = std::min(total_force.Length(), 100.F); // goal speed
         current_action_.steering_delta     = goal_rotation - rot_;
+        // Bound to -180,180
+        current_action_.steering_delta = std::fmod(current_action_.steering_delta, 360.F);
+        if (current_action_.steering_delta > 180.F)
+            current_action_.steering_delta -= 360.F;
     }
 
     void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)

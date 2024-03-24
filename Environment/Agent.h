@@ -8,7 +8,6 @@
 class Agent
 {
   public:
-    static constexpr bool  kDrawSensorRays{true};
     static constexpr float kSensorRange{200.F};
     static constexpr float kSpeedLimit{100.F};
     static constexpr float kRotationLimit{360.F};
@@ -39,13 +38,18 @@ class Agent
     void setPose(const raylib::Vector2 pos, const float rot);
     bool isDone() const;
 
+    inline void setSensorRayDrawing(const bool draw_sensor_rays)
+    {
+        draw_sensor_rays_ = draw_sensor_rays;
+    }
+
     virtual void updateAction() = 0;
 
   public:
     raylib::Vector2 pos_{};
     float           speed_{0.F};
     float           acceleration_{0.F};
-    float           rot_{0.F};
+    float           rot_{0.F}; // degrees
     float           radius_{9.0F};
     float           sensor_offset_{0.0F}; // distance of the sensor from the robot center, along heading direction
     int16_t         id_{};
@@ -54,6 +58,7 @@ class Agent
     bool has_raycast_sensor_{true};
     bool manual_control_enabled_{true};
     bool auto_control_enabled_{true};
+    bool draw_sensor_rays_{true};
 
     std::vector<float> sensor_ray_angles_;
     float              sensor_range_{kSensorRange};
