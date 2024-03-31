@@ -68,6 +68,8 @@ class Visualizer
 
     const Agent *agent_to_follow_{nullptr};
 
+    std::function<void()> user_draw_callback_{nullptr};
+
     // Q<ImageMsg<kScreenWidth, kScreenHeight>, 4> *q_; // shared memory object
 };
 

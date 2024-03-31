@@ -7,22 +7,32 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 # Instantiate the dataset
-data_directory_path = "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/measurements_and_actions"
+DATA_DIR = "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/measurements_and_actions_IMS"
+GRAYSCALE = True
+STEER_ONLY = True
+DOWNSCALE_FACTOR = 4
+NUM_EPOCHS = 100
+VALIDATION_SPLIT_RATIO = 0.01
+BATCH_SIZE = 128
+# BATCH_SIZE = 8
+
 img_transform = transforms.Compose(
     [
         transforms.Lambda(
             lambda img: transforms.functional.resize(
-                img, (img.height // 4, img.width // 4)
+                img, (img.height // DOWNSCALE_FACTOR, img.width // DOWNSCALE_FACTOR)
             )
         ),
         transforms.ToTensor(),
     ]
 )
 print("Loading dataset...")
-dataset = SensorMeasurementsDataset(data_directory_path, img_transform=img_transform)
+dataset = SensorMeasurementsDataset(
+    DATA_DIR, img_transform=img_transform, grayscale=GRAYSCALE, steer_only=STEER_ONLY
+)
 
 # Splitting the dataset into training and validation sets
-train_size = int(0.9 * len(dataset))
+train_size = int((1.0 - VALIDATION_SPLIT_RATIO) * len(dataset))
 val_size = len(dataset) - train_size
 train_dataset, val_dataset = torch.utils.data.random_split(
     dataset, [train_size, val_size]
@@ -30,11 +40,15 @@ train_dataset, val_dataset = torch.utils.data.random_split(
 print(f"train dataset size: {train_size}")
 print(f"validation dataset size: {val_size}")
 
-train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, num_workers=4)
+train_loader = DataLoader(
+    train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4
+)
 val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
 
 # Model, Loss Function, and Optimizer
-model = BirdseyeCNN()
+model = BirdseyeCNN(
+    grayscale=GRAYSCALE, steering_only=STEER_ONLY, downscale_factor=DOWNSCALE_FACTOR
+)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 loss_fn = nn.MSELoss()
 if torch.cuda.is_available():
@@ -42,8 +56,7 @@ if torch.cuda.is_available():
 
 print("Starting training")
 # Training loop
-num_epochs = 20
-for epoch in range(num_epochs):
+for epoch in range(NUM_EPOCHS):
     model.train()
     for batch_idx, (measurement, action) in enumerate(train_loader):
         if torch.cuda.is_available():

@@ -33,6 +33,7 @@ class Environment
     {
         agents_.push_back(agent);
     }
+
     void drawSensorRanges(const std::vector<Vec2d> &sensor_hits)
     {
         std::string range_string{""};
@@ -98,11 +99,6 @@ class Environment
             // genetic::util::drawEpisodeNum(episode_idx);
             // genetic::util::drawTrackTitle(race_track->track_name_);
             // visualizer_->drawTrackTitle(race_track_->track_name_);
-
-            if (user_draw_callback_)
-            {
-                user_draw_callback_();
-            }
         }
         visualizer_->disableDrawing();
 
@@ -142,7 +138,5 @@ class Environment
     std::unique_ptr<env::Visualizer> visualizer_;
     std::vector<Agent *>             agents_;
     std::unique_ptr<raylib::Image>   render_buffer_{nullptr};
-
-    std::function<void()> user_draw_callback_{nullptr};
 };
 } // namespace rl

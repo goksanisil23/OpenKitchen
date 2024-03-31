@@ -1,5 +1,6 @@
 #include "Visualizer.h"
 
+#include <iostream>
 namespace env
 {
 namespace
@@ -83,14 +84,19 @@ void Visualizer::activateDrawing()
 
 void Visualizer::drawAgent(Agent &agent, raylib::Image &render_buffer)
 {
-    raylib::Color   color = (agent.crashed_) ? raylib::Color((Color){253, 249, 0, 150}) : agent.color_;
     raylib::Vector2 agent_texture_coord{agent.pos_.x, kScreenHeight - agent.pos_.y};
+
+    raylib::Color color = (agent.crashed_) ? raylib::Color((Color){253, 249, 0, 150}) : agent.color_;
     render_buffer.DrawCircle(agent_texture_coord, agent.radius_, color);
 
-    // // Draw heading line for robot
-    raylib::Vector2 heading_end = {agent_texture_coord.x + agent.radius_ * cos(DEG2RAD * agent.rot_),
-                                   agent_texture_coord.y + agent.radius_ * -sin(DEG2RAD * agent.rot_)};
-    render_buffer.DrawLine(agent_texture_coord, heading_end, WHITE);
+    // Draw heading line for robot
+    if (agent.draw_agent_heading_)
+    {
+        raylib::Vector2 heading_end = {agent_texture_coord.x + agent.radius_ * cos(DEG2RAD * agent.rot_),
+                                       agent_texture_coord.y + agent.radius_ * -sin(DEG2RAD * agent.rot_)};
+        // render_buffer.DrawLine(agent_texture_coord, heading_end, WHITE);
+        render_buffer.DrawCircle((agent_texture_coord + heading_end) / 2.F, agent.radius_ / 2.F, WHITE);
+    }
 
     if (agent.draw_sensor_rays_)
     {
@@ -201,6 +207,8 @@ void Visualizer::render()
                                          {0.F, 0.F},
                                          WHITE);
         window_->DrawFPS();
+        if (user_draw_callback_)
+            user_draw_callback_();
         window_->EndDrawing();
     }
     else
@@ -218,6 +226,8 @@ void Visualizer::render()
 
         EndMode2D();
         window_->DrawFPS();
+        if (user_draw_callback_)
+            user_draw_callback_();
         window_->EndDrawing();
     }
 }

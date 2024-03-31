@@ -43,6 +43,11 @@ class Agent
         draw_sensor_rays_ = draw_sensor_rays;
     }
 
+    inline void setHeadingDrawing(const bool draw_heading)
+    {
+        draw_agent_heading_ = draw_heading;
+    }
+
     virtual void updateAction() = 0;
 
   public:
@@ -59,6 +64,7 @@ class Agent
     bool manual_control_enabled_{true};
     bool auto_control_enabled_{true};
     bool draw_sensor_rays_{true};
+    bool draw_agent_heading_{true};
 
     std::vector<float> sensor_ray_angles_;
     float              sensor_range_{kSensorRange};

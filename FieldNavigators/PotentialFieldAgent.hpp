@@ -18,7 +18,7 @@
 class PotFieldAgent : public Agent
 {
   public:
-    static constexpr size_t kLookAheadIdx        = 5; // race track index lookahead
+    static constexpr size_t kLookAheadIdx        = 2; // race track index lookahead
     static constexpr float  kAttractiveConstant  = 100.0f;
     static constexpr float  kRepulsiveConstant   = 10.0f;
     static constexpr float  kObstacleEffectRange = 5.0f; // Range within which obstacles exert force
@@ -80,7 +80,7 @@ class PotFieldAgent : public Agent
         current_action_.acceleration_delta = std::min(total_force.Length(), 100.F); // goal speed
         current_action_.steering_delta     = goal_rotation - rot_;
         // Bound to -180,180
-        current_action_.steering_delta = std::fmod(current_action_.steering_delta, 360.F);
+        current_action_.steering_delta = normalizeAngleDeg(current_action_.steering_delta);
         if (current_action_.steering_delta > 180.F)
             current_action_.steering_delta -= 360.F;
     }

@@ -280,7 +280,7 @@ class RaceTrack
         right_bound_inner.resize(dx.size());
         right_bound_outer.resize(dx.size());
 
-        constexpr float kBoundaryThickness{5.F};
+        constexpr float kBoundaryThickness{3.F};
 
         // Calculate track boundaries that are perpendicular lane width distance away from track center
         for (size_t i = 0; i < dx.size(); ++i)

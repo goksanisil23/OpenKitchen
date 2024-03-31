@@ -48,8 +48,8 @@ class PythonInferAgent : public Agent
     void updateAction()
     {
         // Denormalize actions in [-1,1] from the neural network
-        current_action_.acceleration_delta = (action_response_buffer_[0] * 50.F) + 50.F;
-        current_action_.steering_delta     = action_response_buffer_[1] * 180.F;
+        current_action_.acceleration_delta = action_response_buffer_[0];
+        current_action_.steering_delta     = action_response_buffer_[1];
         std::cout << "acc: " << current_action_.acceleration_delta << " str: " << current_action_.steering_delta
                   << std::endl;
     }
@@ -113,8 +113,11 @@ int main(int argc, char **argv)
     const float      start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
     PythonInferAgent agent({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
     env.setAgent(&agent);
+
     env.visualizer_->setAgentToFollow(&agent);
+    env.visualizer_->camera_.zoom = 10.0f;
     agent.setSensorRayDrawing(false);
+    agent.setHeadingDrawing(true);
 
     int32_t reset_idx{RaceTrack::kStartingIdx};
     while (true)
