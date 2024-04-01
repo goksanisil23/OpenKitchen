@@ -7,9 +7,11 @@ In order to have a sufficiently rich training dataset, we collect driving data i
 - driving closer to right track boundary
 - driving in the middle
 
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_0.png" width=20% height=0%>
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_1.png" width=20% height=0%>
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_2.png" width=20% height=0%>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_0.png" width="250" />
+  <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_1.png" width="250" />
+  <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_IMS_155_2.png" width="250" />    
+</p>
 
 Although the BEV images collected are in RGB, CNN we train uses grayscale images. Architecture of the CNN is simple:
 - 5 2d-convolutions, each of which is followed by a Relu
@@ -22,15 +24,15 @@ Activations from the first 3 layers can be seen below:
 
 - 1st layer
 
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/first_layer_activations.png" width=20% height=0%>
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/first_layer_activations.png" width=80% height=0%>
 
 - 2nd layer
 
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/second_layer_activations.png" width=20% height=0%>
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/second_layer_activations.png" width=80% height=0%>
 
 - 3rd layer
 
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/third_layer_activations.png" width=20% height=0%>
+<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/third_layer_activations.png" width=80% height=0%>
 
 ## Trained agent
 
