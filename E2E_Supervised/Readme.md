@@ -34,4 +34,5 @@ Activations from the first 3 layers can be seen below:
 
 ## Trained agent
 
-<video src='https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/E2E_Supervised/resources/birdseye_trained_agent.mp4' width=180/>
+https://github.com/goksanisil23/OpenKitchen/assets/42399822/b18c4038-f19f-4481-9877-90ba52d36f3d
+
