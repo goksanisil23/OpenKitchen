@@ -10,8 +10,7 @@ Algorithms I'm experimenting with ...
 <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/DynamicWindow/dynamic_window.gif" width=52% height=30%>
 
 ## [Q Learning with 2D Raycast on a Racetrack](/RLRacers/Q_Learning)
-<img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/RLRacers/Q_Learning/resources/q_learning_sample.png" width=52% height=30%>
-
+https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8a8c-f1c78624fe5f
 ## [REINFORCE with 2D Raycast on a Racetrack](/RLRacers/Reinforce)
 
 ## [DDPG with 2D Raycast on a Racetrack](/RLRacers/DDPG)
