@@ -15,3 +15,5 @@ Algorithms I'm experimenting with ...
 ## [REINFORCE with 2D Raycast on a Racetrack](/RLRacers/Reinforce)
 
 ## [DDPG with 2D Raycast on a Racetrack](/RLRacers/DDPG)
+
+## [End-to-end CNN with Birdseye View](/E2E_Supervised)
