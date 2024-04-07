@@ -62,7 +62,7 @@ inline void drawActionBar(const std::vector<GeneticAgent> &agents, const uint32_
                    WHITE);
         drawLoadBar(kAccelBarStartX,
                     kBarStartY + i * kBarSpacingY,
-                    agents[i].current_action_.acceleration_delta / genetic::GeneticAgent::kAccelerationDelta,
+                    agents[i].current_action_.throttle_delta / genetic::GeneticAgent::kAccelerationDelta,
                     kAccelBarLen,
                     !agents[i].crashed_);
         constexpr float kSteerLimit{genetic::GeneticAgent::kSteeringDeltaHigh +

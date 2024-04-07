@@ -1,3 +1,4 @@
+#include <cassert>
 #include <iostream>
 
 #include "Agent.h"
@@ -21,72 +22,97 @@ Agent::Agent(raylib::Vector2 start_pos, float start_rot, int16_t id) : pos_{star
     }
 }
 
-// Kinematics update of the driver, when controlled via keyboard by the user
-void Agent::manualMove()
+void Agent::move()
 {
-    if (manual_control_enabled_)
+    switch (movement_mode_)
     {
-        if (IsKeyDown(KEY_RIGHT))
-        {
-            rot_ += kRotDeltaManual;
-        }
-        else if (IsKeyDown(KEY_LEFT))
-        {
-            rot_ -= kRotDeltaManual;
-        }
-
-        if (IsKeyDown(KEY_UP))
-        {
-            // speed_ += kAccInc;
-
-            pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
-        }
-        else if (IsKeyDown(KEY_DOWN))
-        {
-            // speed_ -= kAccInc;
-
-            pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
-            pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
-        }
-
-        // pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
-        // pos_.y += sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+    case MovementMode::VELOCITY:
+    {
+        moveViaVelocity();
+        break;
+    }
+    case MovementMode::ACCELERATION:
+    {
+        moveViaAcceleration();
+        break;
+    }
+    case MovementMode::MANUAL:
+    {
+        moveViaUserInput();
+        break;
+    }
+    default:
+    {
+        std::cerr << "Unimplemented movement mode." << std::endl;
+        assert(false);
+        break;
+    }
     }
 }
 
+// Kinematics update of the driver, when controlled via keyboard by the user
+void Agent::moveViaUserInput()
+{
+    // constexpr float kAccInc         = 5.0f;
+    constexpr float kRotDeltaManual = 5.f;
+
+    if (IsKeyDown(KEY_RIGHT))
+    {
+        rot_ += kRotDeltaManual;
+    }
+    else if (IsKeyDown(KEY_LEFT))
+    {
+        rot_ -= kRotDeltaManual;
+    }
+
+    if (IsKeyDown(KEY_UP))
+    {
+        // speed_ += kAccInc;
+
+        pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+        pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+    }
+    else if (IsKeyDown(KEY_DOWN))
+    {
+        // speed_ -= kAccInc;
+
+        pos_.x += cos(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+        pos_.y += sin(DEG2RAD * rot_) * 10.0 * GetFrameTime();
+    }
+
+    // pos_.x += cos(DEG2RAD * rot_) * speed_ * GetFrameTime();
+    // pos_.y += sin(DEG2RAD * rot_) * speed_ * GetFrameTime();
+}
+
 // Applies the most recent control actions to move the agent kinematically
-void Agent::move()
+void Agent::moveViaAcceleration()
 {
     constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
 
-    if (auto_control_enabled_)
+    rot_ += current_action_.steering_delta;
+    acceleration_ += current_action_.throttle_delta;
+    speed_ += (acceleration_ * kDt);
+
+    // speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
+    speed_ = (speed_ < 0) ? 0 : speed_;
+    speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
+
+    float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
+    pos_.x += delta_x;
+    float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
+    pos_.y += delta_y;
+
+    if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
     {
-        rot_ += current_action_.steering_delta;
-        acceleration_ += current_action_.acceleration_delta;
-        speed_ += (acceleration_ * kDt);
-
-        // speed_ = (speed_ < -kSpeedLimit) ? -kSpeedLimit : speed_;
-        speed_ = (speed_ < 0) ? 0 : speed_;
-        speed_ = (speed_ > kSpeedLimit) ? kSpeedLimit : speed_;
-
-        float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
-        pos_.x += delta_x;
-        float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
-        pos_.y += delta_y;
-
-        if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
+        standstill_ctr_++;
+        if (standstill_ctr_ > kStandstillTimeout)
         {
-            standstill_ctr_++;
-            if (standstill_ctr_ > kStandstillTimeout)
-            {
-                standstill_timed_out_ = true;
-            }
+            standstill_timed_out_ = true;
         }
-        else
-        {
-            standstill_ctr_ = 0;
-        }
+    }
+    else
+    {
+        standstill_ctr_ = 0;
     }
 }
 
@@ -98,31 +124,29 @@ void Agent::setPose(const raylib::Vector2 pos, const float rot)
 }
 
 // Movement based on direct setting of speed and steering
-void Agent::move2()
+void Agent::moveViaVelocity()
 {
     constexpr float kDt{0.016}; // ~60FPS, but set to constant to have determinism
-    if (auto_control_enabled_)
+
+    rot_ += current_action_.steering_delta;
+    speed_ = current_action_.throttle_delta;
+
+    float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
+    pos_.x += delta_x;
+    float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
+    pos_.y += delta_y;
+
+    if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
     {
-        rot_ += current_action_.steering_delta;
-        speed_ = current_action_.acceleration_delta;
-
-        float delta_x = cos(DEG2RAD * rot_) * speed_ * kDt;
-        pos_.x += delta_x;
-        float delta_y = sin(DEG2RAD * rot_) * speed_ * kDt;
-        pos_.y += delta_y;
-
-        if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
+        standstill_ctr_++;
+        if (standstill_ctr_ > kStandstillTimeout)
         {
-            standstill_ctr_++;
-            if (standstill_ctr_ > kStandstillTimeout)
-            {
-                standstill_timed_out_ = true;
-            }
+            standstill_timed_out_ = true;
         }
-        else
-        {
-            standstill_ctr_ = 0;
-        }
+    }
+    else
+    {
+        standstill_ctr_ = 0;
     }
 }
 
@@ -139,8 +163,6 @@ void Agent::reset(const raylib::Vector2 &reset_pos, const float reset_rot)
     completed_            = false;
     standstill_timed_out_ = false;
     standstill_ctr_       = 0;
-
-    score_ = 0.F;
 
     current_action_ = Action{0.F, 0.F};
 }

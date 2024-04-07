@@ -98,7 +98,7 @@ void Visualizer::drawAgent(Agent &agent, raylib::Image &render_buffer)
         render_buffer.DrawCircle((agent_texture_coord + heading_end) / 2.F, agent.radius_ / 2.F, WHITE);
     }
 
-    if (agent.draw_sensor_rays_)
+    if (agent.draw_sensor_rays_ && agent.has_raycast_sensor_)
     {
         drawSensorRays(agent.pixels_until_hit_, render_buffer);
     }

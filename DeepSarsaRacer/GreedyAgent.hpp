@@ -83,8 +83,8 @@ class GreedyAgent : public Agent
         auto       q_values     = nn_.forward(state_tensor);
         auto       action_idx   = q_values.argmax().item<int64_t>();
         auto const accel_steer_pair{kActionMap.at(action_idx)};
-        current_action_.acceleration_delta = accel_steer_pair.first;
-        current_action_.steering_delta     = accel_steer_pair.second;
+        current_action_.throttle_delta = accel_steer_pair.first;
+        current_action_.steering_delta = accel_steer_pair.second;
     }
 
   private:

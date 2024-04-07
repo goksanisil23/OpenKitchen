@@ -78,8 +78,8 @@ class DeepSarsaAgent : public Agent
         }
 
         auto const accel_steer_pair{kActionMap.at(next_action_idx_)};
-        next_action_.acceleration_delta = accel_steer_pair.first;
-        next_action_.steering_delta     = accel_steer_pair.second;
+        next_action_.throttle_delta = accel_steer_pair.first;
+        next_action_.steering_delta = accel_steer_pair.second;
     }
 
     void train(const float reward, const bool done)

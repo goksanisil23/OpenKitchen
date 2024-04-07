@@ -9,11 +9,11 @@ Algorithms I'm experimenting with ...
 ## [Dynamic Window Path Planning](/DynamicWindow)
 <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/DynamicWindow/dynamic_window.gif" width=52% height=30%>
 
-## [Q Learning with 2D Raycast on a Racetrack](/RLRacers/Q_Learning)
+## [Q Learning with 2D Raycast](/RLRacers/Q_Learning)
 https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8a8c-f1c78624fe5f
-## [REINFORCE with 2D Raycast on a Racetrack](/RLRacers/Reinforce)
+## [REINFORCE with 2D Raycast](/RLRacers/Reinforce)
 
-## [DDPG with 2D Raycast on a Racetrack](/RLRacers/DDPG)
+## [DDPG with 2D Raycast](/RLRacers/DDPG)
 
 ## [End-to-end CNN with Birdseye View](/E2E_Supervised)
 https://github.com/goksanisil23/OpenKitchen/assets/42399822/b18c4038-f19f-4481-9877-90ba52d36f3d

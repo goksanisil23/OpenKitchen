@@ -21,7 +21,7 @@ namespace rl
 class DQLearnAgent : public Agent
 {
   public:
-    static constexpr float kVelocity{120.0};
+    static constexpr float kVelocity{60.0};
     static constexpr float kSteeringDelta{5}; // degrees
 
     static constexpr float kEpsilon{0.9};           // probability of choosing random action (initial value)
@@ -95,8 +95,8 @@ class DQLearnAgent : public Agent
         }
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
-        current_action_.acceleration_delta = accel_steer_pair.first;
-        current_action_.steering_delta     = accel_steer_pair.second;
+        current_action_.throttle_delta = accel_steer_pair.first;
+        current_action_.steering_delta = accel_steer_pair.second;
     }
 
     void learn(const torch::Tensor &current_state_tensor,

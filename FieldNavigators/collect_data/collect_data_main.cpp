@@ -80,7 +80,7 @@ class DataCollectorAgent : public PotFieldAgent
         // {
         //     current_action_.steering_delta = 0.F;
         // }
-        // std::cout << "action: " << current_action_.acceleration_delta << " " << current_action_.steering_delta
+        // std::cout << "action: " << current_action_.throttle_delta << " " << current_action_.steering_delta
         //           << std::endl;
     }
 
@@ -94,7 +94,7 @@ class DataCollectorAgent : public PotFieldAgent
                 filename = directory_ + "/" + "birdseye_" + track_name + "_" + std::to_string(ctr_) + "_" +
                            std::to_string(left_right_middle) + ".txt";
                 std::ofstream out{filename};
-                out << current_action_.acceleration_delta << " " << current_action_.steering_delta;
+                out << current_action_.throttle_delta << " " << current_action_.steering_delta;
                 out.close();
                 filename.replace(filename.size() - 4, 4, ".png");
                 // env.render_buffer_->Export(filename);
@@ -110,7 +110,7 @@ class DataCollectorAgent : public PotFieldAgent
             {
                 out << hit.x << " " << hit.y << std::endl;
             }
-            out << " " << current_action_.acceleration_delta << " " << current_action_.steering_delta;
+            out << " " << current_action_.throttle_delta << " " << current_action_.steering_delta;
         }
         else
         {

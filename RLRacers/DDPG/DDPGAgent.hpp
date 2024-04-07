@@ -86,8 +86,8 @@ class DDPGAgent : public Agent
         // Probability associated to each action
         auto action = actor_.forward(current_state_tensor_.unsqueeze(0));
 
-        current_action_.acceleration_delta = action[0][0].item<float>();
-        current_action_.steering_delta     = action[0][1].item<float>();
+        current_action_.throttle_delta = action[0][0].item<float>();
+        current_action_.steering_delta = action[0][1].item<float>();
     }
 
     template <typename T>

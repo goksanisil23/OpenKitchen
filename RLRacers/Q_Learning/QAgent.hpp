@@ -62,7 +62,7 @@ class QLearnAgent : public Agent
         sensor_ray_angles_.push_back(70.F);
 
         // Set all the Q-values to invalid
-        for (auto &action_vals_per_state : q_values_)
+        for (auto &action_vals_per_state : q_table_)
         {
             std::fill(action_vals_per_state.begin(), action_vals_per_state.end(), kInvalidQVal);
         }
@@ -104,7 +104,7 @@ class QLearnAgent : public Agent
         }
         else
         {
-            auto   q_vals_for_this_state = q_values_[current_state_idx_];
+            auto   q_vals_for_this_state = q_table_[current_state_idx_];
             size_t max_val_action =
                 std::distance(q_vals_for_this_state.begin(),
                               std::max_element(q_vals_for_this_state.begin(), q_vals_for_this_state.end()));
@@ -114,8 +114,8 @@ class QLearnAgent : public Agent
         }
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
-        current_action_.acceleration_delta = accel_steer_pair.first;
-        current_action_.steering_delta     = accel_steer_pair.second;
+        current_action_.throttle_delta = accel_steer_pair.first;
+        current_action_.steering_delta = accel_steer_pair.second;
     }
 
     void learn(const size_t current_state_idx, const size_t action, const float reward, const size_t next_state_idx)
@@ -123,17 +123,17 @@ class QLearnAgent : public Agent
         // Q-learning:
         // Q_new(s, a) = (1-α) * Q_current + α*(reward(s,a) + γ*max(Q(s'))
 
-        float max_q_next_state = *std::max_element(q_values_[next_state_idx].begin(), q_values_[next_state_idx].end());
+        float max_q_next_state = *std::max_element(q_table_[next_state_idx].begin(), q_table_[next_state_idx].end());
         float temporal_diff_target = reward + kGamma * max_q_next_state;
 
-        float old_q = q_values_.at(current_state_idx_).at(current_action_idx_);
+        float old_q = q_table_.at(current_state_idx_).at(current_action_idx_);
         if ((old_q == kInvalidQVal) || (max_q_next_state == kInvalidQVal))
         {
-            q_values_.at(current_state_idx_).at(current_action_idx_) = reward;
+            q_table_.at(current_state_idx_).at(current_action_idx_) = reward;
         }
         else
         {
-            q_values_.at(current_state_idx_).at(current_action_idx_) = old_q + kAlpha * (temporal_diff_target - old_q);
+            q_table_.at(current_state_idx_).at(current_action_idx_) = old_q + kAlpha * (temporal_diff_target - old_q);
         }
     }
 
@@ -175,8 +175,9 @@ class QLearnAgent : public Agent
     int64_t track_idx_len_;
 
     float epsilon_{kEpsilon};
+    float score_{0.F};
 
-    std::array<std::array<float, kActionSize>, kNumStates> q_values_;
+    std::array<std::array<float, kActionSize>, kNumStates> q_table_;
 };
 
 } // namespace rl

@@ -83,8 +83,8 @@ class ReinforceAgent : public Agent
         current_action_idx_ = sampled_action.item<int>();
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
-        current_action_.acceleration_delta = accel_steer_pair.first;
-        current_action_.steering_delta     = accel_steer_pair.second;
+        current_action_.throttle_delta = accel_steer_pair.first;
+        current_action_.steering_delta = accel_steer_pair.second;
     }
 
     void updatePolicy()

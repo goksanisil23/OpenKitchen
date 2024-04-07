@@ -77,8 +77,8 @@ class PotFieldAgent : public Agent
         // Determine control based on forces
         auto goal_rotation = std::atan2(total_force.y, total_force.x) * 180.F / M_PI;
         // Bound to [0,100]
-        current_action_.acceleration_delta = std::min(total_force.Length(), 100.F); // goal speed
-        current_action_.steering_delta     = goal_rotation - rot_;
+        current_action_.throttle_delta = std::min(total_force.Length(), 100.F); // goal speed
+        current_action_.steering_delta = goal_rotation - rot_;
         // Bound to -180,180
         current_action_.steering_delta = normalizeAngleDeg(current_action_.steering_delta);
         if (current_action_.steering_delta > 180.F)

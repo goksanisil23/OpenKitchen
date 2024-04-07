@@ -42,14 +42,14 @@ class PythonInferAgent : public Agent
         sensor_ray_angles_.push_back(60.F);
         sensor_ray_angles_.push_back(90.F);
 
-        current_action_.acceleration_delta = 0.F;
-        current_action_.steering_delta     = 0.F;
+        current_action_.throttle_delta = 0.F;
+        current_action_.steering_delta = 0.F;
     }
     void updateAction()
     {
-        current_action_.acceleration_delta = action_response_buffer_[0];
-        current_action_.steering_delta     = action_response_buffer_[1];
-        std::cout << "acc: " << current_action_.acceleration_delta << " str: " << current_action_.steering_delta
+        current_action_.throttle_delta = action_response_buffer_[0];
+        current_action_.steering_delta = action_response_buffer_[1];
+        std::cout << "acc: " << current_action_.throttle_delta << " str: " << current_action_.steering_delta
                   << std::endl;
     }
 

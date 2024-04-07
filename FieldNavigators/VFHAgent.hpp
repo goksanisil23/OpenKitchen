@@ -121,8 +121,8 @@ class VFHAgent : public Agent
 
         std::cout << "best sector angle: " << best_sector_angle << std::endl;
 
-        current_action_.acceleration_delta = 15.0;
-        current_action_.steering_delta     = best_sector_angle;
+        current_action_.throttle_delta = 15.0;
+        current_action_.steering_delta = best_sector_angle;
     }
 
     void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)

@@ -52,9 +52,7 @@ class Environment
         {
             if (!agent->crashed_)
             {
-                // agent->move();
-                agent->move2();
-                // agent->manualMove();
+                agent->move();
                 if (agent->standstill_timed_out_)
                 {
                     agent->crashed_ = true;

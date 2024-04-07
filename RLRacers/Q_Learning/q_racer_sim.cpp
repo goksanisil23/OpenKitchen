@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Environment.hpp"
+#include "Environment/Environment.hpp"
 #include "QAgent.hpp"
 
 constexpr int16_t kNumAgents{30};
@@ -43,7 +43,7 @@ void shareCumulativeKnowledge(std::vector<rl::QLearnAgent> &q_agents)
             float &valid_count = valid_counts.at(state_idx).at(action_idx);
             for (const auto &q_agent : q_agents)
             {
-                const auto &q_val{q_agent.q_values_.at(state_idx).at(action_idx)};
+                const auto &q_val{q_agent.q_table_.at(state_idx).at(action_idx)};
                 if (q_val != rl::QLearnAgent::kInvalidQVal)
                 {
                     if (total_val == rl::QLearnAgent::kInvalidQVal)
@@ -68,7 +68,7 @@ void shareCumulativeKnowledge(std::vector<rl::QLearnAgent> &q_agents)
         {
             for (auto &q_agent : q_agents)
             {
-                q_agent.q_values_.at(state_idx).at(action_idx) = total_q_values.at(state_idx).at(action_idx);
+                q_agent.q_table_.at(state_idx).at(action_idx) = total_q_values.at(state_idx).at(action_idx);
             }
         }
     }
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
     uint32_t episode_idx{0};
     int32_t  reset_idx{RaceTrack::kStartingIdx};
 
-    env.user_draw_callback_ = [&episode_idx, &q_agents]()
+    env.visualizer_->user_draw_callback_ = [&episode_idx, &q_agents]()
     {
         char buffer[30];
         snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, q_agents.front().epsilon_);
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         if constexpr (kShareCumulativeKnowledge)
             shareCumulativeKnowledge(q_agents);
         if constexpr (kEnableGreedyAgent)
-            greedy_agent->q_values_ = q_agents.front().q_values_;
+            greedy_agent->q_table_ = q_agents.front().q_table_;
     }
 
     return 0;

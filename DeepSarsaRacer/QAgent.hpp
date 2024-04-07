@@ -108,8 +108,8 @@ class QLearnAgent : public Agent
         }
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
-        current_action_.acceleration_delta = accel_steer_pair.first;
-        current_action_.steering_delta     = accel_steer_pair.second;
+        current_action_.throttle_delta = accel_steer_pair.first;
+        current_action_.steering_delta = accel_steer_pair.second;
     }
 
     void learn(const size_t current_state_idx, const size_t action, const float reward, const size_t next_state_idx)

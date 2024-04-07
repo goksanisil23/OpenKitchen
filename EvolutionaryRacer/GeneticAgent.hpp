@@ -33,7 +33,7 @@ class GeneticAgent : public Agent
 
     void updateAction() override
     {
-        float acceleration_delta{0.F};
+        float throttle_delta{0.F};
         float steering_delta{0.F};
 
         // Inference gives values in [0,1], we'll use the ones that are > 0.5
@@ -41,8 +41,8 @@ class GeneticAgent : public Agent
 
         if constexpr (Network::kClassificationLayerType == Network::ClassificationLayer::Sigmoid)
         {
-            acceleration_delta += (nn_output_[0] > kOutputActivationLim) ? kAccelerationDelta : 0.F;
-            acceleration_delta += (nn_output_[1] > kOutputActivationLim) ? -kAccelerationDelta : 0.F;
+            throttle_delta += (nn_output_[0] > kOutputActivationLim) ? kAccelerationDelta : 0.F;
+            throttle_delta += (nn_output_[1] > kOutputActivationLim) ? -kAccelerationDelta : 0.F;
 
             steering_delta += (nn_output_[2] > kOutputActivationLim) ? kSteeringDeltaLow : 0.F;   // left soft
             steering_delta += (nn_output_[3] > kOutputActivationLim) ? kSteeringDeltaHigh : 0.F;  // left hard
@@ -58,12 +58,12 @@ class GeneticAgent : public Agent
             {
             case 0:
             {
-                acceleration_delta = kAccelerationDelta;
+                throttle_delta = kAccelerationDelta;
                 break;
             }
             case 1:
             {
-                acceleration_delta = -kAccelerationDelta;
+                throttle_delta = -kAccelerationDelta;
                 break;
             }
             case 2:
@@ -88,8 +88,8 @@ class GeneticAgent : public Agent
             }
             default:
             {
-                acceleration_delta = 0.F;
-                steering_delta     = 0.F;
+                throttle_delta = 0.F;
+                steering_delta = 0.F;
                 break;
             }
             }
@@ -99,13 +99,14 @@ class GeneticAgent : public Agent
             assert(false && "Classification layer type unsupported");
         }
 
-        current_action_.acceleration_delta = acceleration_delta;
-        current_action_.steering_delta     = steering_delta;
+        current_action_.throttle_delta = throttle_delta;
+        current_action_.steering_delta = steering_delta;
     }
 
   public:
     Network                                 nn_;
     std::array<float, Network::kOutputSize> nn_output_;
+    float                                   score_{0.F};
 };
 
 } // namespace genetic

@@ -42,15 +42,15 @@ class PythonInferAgent : public Agent
         sem_measurements_ = sem_open("/sem1", O_CREAT, 0666, 0);
         sem_actions_      = sem_open("/sem2", O_CREAT, 0666, 0);
 
-        current_action_.acceleration_delta = 0.F;
-        current_action_.steering_delta     = 0.F;
+        current_action_.throttle_delta = 0.F;
+        current_action_.steering_delta = 0.F;
     }
     void updateAction()
     {
         // Denormalize actions in [-1,1] from the neural network
-        current_action_.acceleration_delta = action_response_buffer_[0];
-        current_action_.steering_delta     = action_response_buffer_[1];
-        std::cout << "acc: " << current_action_.acceleration_delta << " str: " << current_action_.steering_delta
+        current_action_.throttle_delta = action_response_buffer_[0];
+        current_action_.steering_delta = action_response_buffer_[1];
+        std::cout << "acc: " << current_action_.throttle_delta << " str: " << current_action_.steering_delta
                   << std::endl;
     }
 
