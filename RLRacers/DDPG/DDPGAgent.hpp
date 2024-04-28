@@ -29,8 +29,6 @@ class DDPGAgent : public Agent
     static constexpr float kCriticLearningRate{1e-3}; // learning rate for Actor's the Adam optimizer
     static constexpr float kTau{0.005};               // target smoothing factor (weight given to target's network)
 
-    static constexpr int16_t kBatchSize{100};
-
     DDPGAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
@@ -105,11 +103,13 @@ class DDPGAgent : public Agent
 
     void updateDDPG()
     {
+        static constexpr int16_t kBatchSize{100};
+
         std::cout << "Replay buffer size: " << replay_buffer_.states.size() << std::endl;
         for (size_t iter{0}; iter < num_update_steps_; iter++)
         {
             // Sample replay buffer
-            ReplayBuffer::Samples samples = replay_buffer_.sample(kBatchSize);
+            ReplayBuffer<Agent::Action>::Samples samples = replay_buffer_.sample(kBatchSize);
 
             torch::Tensor state      = samples.states;
             torch::Tensor next_state = samples.next_states;
@@ -177,7 +177,7 @@ class DDPGAgent : public Agent
 
     size_t num_update_steps_{200};
 
-    ReplayBuffer replay_buffer_;
+    ReplayBuffer<Agent::Action> replay_buffer_;
 };
 
 } // namespace rl
