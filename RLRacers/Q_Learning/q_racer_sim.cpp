@@ -13,7 +13,7 @@ constexpr int16_t kNumAgents{30};
 // create an agent which always chooses the greedy action based on latest q-table of other learning agents
 constexpr bool kEnableGreedyAgent{false};
 // at the end of each episode, take the average of all q-tables and distribute back to all agents
-constexpr bool kShareCumulativeKnowledge{true};
+constexpr bool kShareCumulativeKnowledge{false}; // succeeds both with and without
 
 int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
 {
