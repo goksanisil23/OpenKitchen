@@ -16,9 +16,8 @@
 class VFHAgent : public Agent
 {
   public:
-    static constexpr float   kVelocity{60.0};
-    static constexpr float   kSteeringDelta{5};         // degrees
     static constexpr int32_t kObstacleDistThreshold{1}; // number of hits in the sector
+    static constexpr size_t  kLookAheadIdx = 2;         // race track index lookahead
 
     VFHAgent() = default;
 
@@ -30,20 +29,13 @@ class VFHAgent : public Agent
              const size_t          track_idx_len = 0)
         : Agent(start_pos, start_rot, id)
     {
-        // Re-configure the sensor ray angles so that we only have 5 rays
+        // Re-configure the sensor ray angles
         sensor_ray_angles_.clear();
         const float start_angle = -90.F;
         for (int i = 0; i < 19; i++)
         {
             sensor_ray_angles_.push_back(i * 10 + start_angle);
         }
-        //     sensor_ray_angles_.push_back(-90.F);
-        // sensor_ray_angles_.push_back(-60.F);
-        // sensor_ray_angles_.push_back(-30.F);
-        // sensor_ray_angles_.push_back(0.F);
-        // sensor_ray_angles_.push_back(30.F);
-        // sensor_ray_angles_.push_back(60.F);
-        // sensor_ray_angles_.push_back(90.F);
 
         num_sectors_ = sensor_ray_angles_.size();
         polar_histogram_.resize(num_sectors_, 0);
@@ -121,7 +113,7 @@ class VFHAgent : public Agent
 
         std::cout << "best sector angle: " << best_sector_angle << std::endl;
 
-        current_action_.throttle_delta = 15.0;
+        current_action_.throttle_delta = 100.0;
         current_action_.steering_delta = best_sector_angle;
     }
 

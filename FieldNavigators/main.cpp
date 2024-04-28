@@ -10,7 +10,7 @@
 #include "PotentialFieldAgent.hpp"
 #include "VFHAgent.hpp"
 
-using FieldAgent             = PotFieldAgent; // options = [PotFieldAgent,VFHAgent]
+using FieldAgent             = VFHAgent; // options = [PotFieldAgent,VFHAgent]
 constexpr int16_t kNumAgents = 1;
 
 int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
@@ -21,7 +21,7 @@ int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
 size_t getGoalPointIdx(const FieldAgent &agent, const rl::Environment &env)
 {
     size_t current_idx = env.race_track_->findNearestTrackIndexBruteForce({agent.pos_.x, agent.pos_.y});
-    size_t goal_index  = (current_idx + PotFieldAgent::kLookAheadIdx) % env.race_track_->track_data_points_.x_m.size();
+    size_t goal_index  = (current_idx + FieldAgent::kLookAheadIdx) % env.race_track_->track_data_points_.x_m.size();
     return goal_index;
 }
 
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     uint32_t episode_idx{0};
     int32_t  reset_idx{RaceTrack::kStartingIdx};
 
-    env.user_draw_callback_ = [&episode_idx, &agents]()
+    env.visualizer_->user_draw_callback_ = [&episode_idx, &agents]()
     {
         // char buffer[30];
         // snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, agents.front().epsilon_);
