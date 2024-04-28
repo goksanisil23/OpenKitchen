@@ -10,11 +10,13 @@
 #include <random>
 #include <unordered_map>
 
+#include "Network.hpp"
+#include "ReplayBuffer.hpp"
+
 #include "Environment/Agent.h"
 #include "Environment/IpcMsgs.h"
 #include "Environment/Typedefs.h"
 #include "Environment/Utils.h"
-#include "Network.hpp"
 
 namespace rl
 {
@@ -24,11 +26,10 @@ class DQLearnAgent : public Agent
     static constexpr float kVelocity{60.0};
     static constexpr float kSteeringDelta{5}; // degrees
 
-    static constexpr float kEpsilon{0.9};           // probability of choosing random action (initial value)
-    static constexpr float kEpsilonDiscount{0.001}; // how much epsilon decreases to next episode
-    static constexpr float kGamma{0.8};             // discount factor btw current and future rewards
-    static constexpr float kAlpha{0.2};
-    static constexpr float kLearningRate{0.01}; // learning rate for the Adam optimizer
+    static constexpr float kEpsilon{0.9};          // probability of choosing random action (initial value)
+    static constexpr float kEpsilonDiscount{0.01}; // how much epsilon decreases to next episode
+    static constexpr float kGamma{0.8};            // discount factor btw current and future rewards
+    static constexpr float kLearningRate{0.001};   // learning rate for the Adam optimizer
 
     static constexpr float kInvalidQVal{std::numeric_limits<float>::lowest()};
 
@@ -87,11 +88,9 @@ class DQLearnAgent : public Agent
         }
         else
         {
-            auto   q_vals_for_this_state = nn_.forward(current_state_tensor_);
-            size_t max_val_action        = q_vals_for_this_state.argmax().item<int64_t>();
-
+            auto q_vals_for_this_state = nn_.forward(current_state_tensor_);
             // Choose the action corresponding to maximum q-value estimate
-            current_action_idx_ = max_val_action;
+            current_action_idx_ = q_vals_for_this_state.argmax().item<int64_t>();
         }
 
         auto const accel_steer_pair{kActionMap.at(current_action_idx_)};
@@ -100,10 +99,13 @@ class DQLearnAgent : public Agent
     }
 
     void learn(const torch::Tensor &current_state_tensor,
-               const size_t         action,
+               const size_t         current_action_idx,
                const float          reward,
                const torch::Tensor &next_state_tensor)
     {
+        // Q-learning:
+        // Q_new(s, a) = (1-α) * Q_current + α*(reward(s,a) + γ*max(Q(s'))
+
         auto q_values      = nn_.forward(current_state_tensor);
         auto next_q_values = nn_.forward(next_state_tensor);
 
@@ -112,15 +114,47 @@ class DQLearnAgent : public Agent
         // Create a tensor identical to current q-value prediction
         auto target = q_values.clone().detach();
         // But just change 1 value which is our observation based q-value associated to next_action
-        target[current_action_idx_] = temporal_diff_target;
+        target[current_action_idx] = temporal_diff_target;
 
         auto loss = torch::mse_loss(q_values, target);
         optimizer_.zero_grad(); // clear the previous gradients
         loss.backward();
         optimizer_.step();
+    }
 
-        // Q-learning:
-        // Q_new(s, a) = (1-α) * Q_current + α*(reward(s,a) + γ*max(Q(s'))
+    void updateDQN()
+    {
+        static constexpr int16_t kBatchSize{128};
+
+        std::cout << "Replay buffer size: " << replay_buffer_.states.size() << std::endl;
+        for (size_t iter{0}; iter < num_update_steps_; iter++)
+        {
+            // Sample replay buffer
+            ReplayBuffer<size_t>::Samples samples = replay_buffer_.sample(kBatchSize);
+
+            torch::Tensor state      = samples.states;
+            torch::Tensor next_state = samples.next_states;
+            torch::Tensor reward     = samples.rewards;
+            torch::Tensor action     = samples.actions;
+
+            auto q_values      = nn_.forward(state);
+            auto next_q_values = nn_.forward(next_state);
+
+            auto temporal_diff_target = reward + kGamma * torch::max(next_q_values).item<float>();
+
+            // Correct way to use action indices to select corresponding q-values for updating
+            auto gather_index     = action.unsqueeze(-1); // Ensure it has the correct shape for gather
+            auto q_value_selected = q_values.gather(1, gather_index).squeeze(1);
+
+            // Create a target tensor
+            auto target = q_values.clone().detach();
+            target.scatter_(1, gather_index, temporal_diff_target.unsqueeze(1));
+
+            auto loss = torch::mse_loss(q_values, target);
+            optimizer_.zero_grad(); // clear the previous gradients
+            loss.backward();
+            optimizer_.step();
+        }
     }
 
     void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
@@ -153,6 +187,16 @@ class DQLearnAgent : public Agent
         return progression_reward * 10.F;
     }
 
+    std::vector<float> getCurrentState() const
+    {
+        std::vector<float> sensor_hits_norm(sensor_hits_.size());
+        for (size_t i{0}; i < sensor_hits_.size(); i++)
+        {
+            sensor_hits_norm[i] = sensor_hits_[i].norm() / kSensorRange;
+        }
+        return sensor_hits_norm;
+    }
+
   public:
     size_t        current_action_idx_;
     torch::Tensor current_state_tensor_;
@@ -165,6 +209,9 @@ class DQLearnAgent : public Agent
     int64_t track_idx_len_;
 
     float epsilon_{kEpsilon};
+
+    size_t               num_update_steps_{200};
+    ReplayBuffer<size_t> replay_buffer_;
 };
 
 Network            DQLearnAgent::nn_        = Network();
