@@ -8,13 +8,12 @@
 
 #include "CircularVector.hpp"
 #include "Environment/Agent.h"
-// #include "Typedefs.h"
 
-template <size_t StateDim, size_t ActionDim>
+template <size_t StateDim, size_t ActionDim, typename ActionType, torch::Dtype TorchActionType>
 struct ReplayBuffer
 {
-    typedef std::array<float, StateDim>  State;
-    typedef std::array<float, ActionDim> Action;
+    typedef std::array<float, StateDim>       State;
+    typedef std::array<ActionType, ActionDim> Action;
 
     static constexpr size_t kCapacity{1'000'000};
 
@@ -48,12 +47,12 @@ struct ReplayBuffer
             chosen_idxs.push_back(rand_idx);
         }
 
-        torch::Tensor chosen_states_tensor      = torch::empty({batch_size, 5}); // 5 = state size
-        torch::Tensor chosen_next_states_tensor = torch::empty({batch_size, 5});
-        torch::Tensor chosen_actions_tensor     = torch::empty({batch_size, 2}); // 2 = actions size
-        // torch::Tensor chosen_actions_tensor = torch::empty({batch_size, 1}, torch::kInt64); // 2 = actions size
-        torch::Tensor chosen_rewards_tensor = torch::empty({batch_size, 1});
-        torch::Tensor chosen_dones_tensor   = torch::empty({batch_size, 1});
+        torch::Tensor chosen_states_tensor      = torch::empty({batch_size, StateDim}, torch::kFloat32);
+        torch::Tensor chosen_next_states_tensor = torch::empty({batch_size, StateDim}, torch::kFloat32);
+        torch::Tensor chosen_actions_tensor =
+            torch::empty({batch_size, ActionDim}, torch::TensorOptions().dtype(TorchActionType));
+        torch::Tensor chosen_rewards_tensor = torch::empty({batch_size, 1}, torch::kFloat32);
+        torch::Tensor chosen_dones_tensor   = torch::empty({batch_size, 1}, torch::kFloat32);
 
         // Flatten for torch conversion
         size_t batch_idx{0};
@@ -62,8 +61,8 @@ struct ReplayBuffer
             chosen_states_tensor[batch_idx] = torch::from_blob(states[idx].data(), {StateDim}, torch::kFloat32);
             chosen_next_states_tensor[batch_idx] =
                 torch::from_blob(next_states[idx].data(), {StateDim}, torch::kFloat32);
-            // chosen_actions_tensor[batch_idx]     = torch::from_blob(&(actions[idx]), {2}, torch::kFloat32);
-            chosen_actions_tensor[batch_idx] = torch::from_blob(&(actions[idx]), {ActionDim}, torch::kInt64);
+            chosen_actions_tensor[batch_idx] =
+                torch::from_blob(&(actions[idx]), {ActionDim}, torch::TensorOptions().dtype(TorchActionType));
             chosen_rewards_tensor[batch_idx] = torch::from_blob(&(rewards[idx]), {1}, torch::kFloat32);
             chosen_dones_tensor[batch_idx]   = torch::from_blob(&(dones[idx]), {1}, torch::kFloat32);
             batch_idx++;
