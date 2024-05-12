@@ -13,7 +13,7 @@ struct Network : torch::nn::Module
     // static constexpr int32_t kInputsFromSensor{15};
     // static constexpr int32_t kInputsSize{kInputsFromSensor + 2};
     static constexpr int32_t kInputsSize{5}; // size of the states
-    static constexpr int32_t kOutputSize{3}; // size of the action values
+    static constexpr int32_t kOutputSize{5}; // size of the action values
     static constexpr int32_t kHiddenLayerSize1{400};
     static constexpr int32_t kHiddenLayerSize2{300};
 

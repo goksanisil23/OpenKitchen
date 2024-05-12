@@ -1,5 +1,7 @@
 #pragma once
 
+#undef NDEBUG
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -61,6 +63,9 @@ class DQLearnAgent : public Agent
         sensor_ray_angles_.push_back(0.F);
         sensor_ray_angles_.push_back(30.F);
         sensor_ray_angles_.push_back(70.F);
+
+        assert(sensor_ray_angles_.size() == kStateDim);
+        assert(kActionMap.size() == Network::kOutputSize);
     }
 
     // Create an input tensor to the network from the ego-states and sensor measurement

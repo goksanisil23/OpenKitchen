@@ -1,5 +1,7 @@
 #pragma once
 
+#undef NDEBUG
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
