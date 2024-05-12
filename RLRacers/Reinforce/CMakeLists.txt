@@ -14,8 +14,8 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 set(REINFORCE_SRCS
     ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
     ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
+    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp    
     ${CMAKE_CURRENT_SOURCE_DIR}/ReinforceAgent.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/reinforce_sim.cpp
 )
 

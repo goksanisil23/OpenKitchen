@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Environment.hpp"
+#include "Environment/Environment.hpp"
 #include "ReinforceAgent.hpp"
 
 constexpr int16_t kNumAgents{1};
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     uint32_t episode_idx{0};
     int32_t  reset_idx{RaceTrack::kStartingIdx};
 
-    env.user_draw_callback_ = [&episode_idx, &agents]()
+    env.visualizer_->user_draw_callback_ = [&episode_idx, &agents]()
     {
         // char buffer[30];
         // snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, agents.front().epsilon_);
