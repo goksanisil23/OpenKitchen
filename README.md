@@ -11,6 +11,9 @@ Algorithms I'm experimenting with ...
 
 ## [Q Learning with 2D Raycast](/RLRacers/Q_Learning)
 https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8a8c-f1c78624fe5f
+
+## [Deep-Q Learning with 2D Raycast](/RLRacers/Deep_Q_Learning)
+
 ## [REINFORCE with 2D Raycast](/RLRacers/Reinforce)
 
 ## [DDPG with 2D Raycast](/RLRacers/DDPG)
