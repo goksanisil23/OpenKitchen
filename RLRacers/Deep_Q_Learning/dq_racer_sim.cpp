@@ -10,6 +10,7 @@
 #include "Environment/Environment.hpp"
 
 constexpr int16_t kNumAgents{30};
+// constexpr int16_t kNumAgents{1};
 // at the end of each episode, take the average of all q-tables and distribute back to all agents
 constexpr bool kShareCumulativeKnowledge{true};
 
@@ -54,6 +55,7 @@ int main(int argc, char **argv)
     };
 
     bool all_done{false};
+
     while (true)
     {
         std::cout << "------------ EPISODE " << episode_idx << " DONE ---------------" << std::endl;
@@ -85,24 +87,31 @@ int main(int argc, char **argv)
             {
                 dq_agent.replay_buffer_.states.push(dq_agent.getCurrentState());
                 dq_agent.updateAction();
-                dq_agent.replay_buffer_.actions.push(dq_agent.current_action_idx_);
+                dq_agent.replay_buffer_.actions.push(dq_agent.getCurrentAction());
             }
 
-            env.step(); // agent moves in the environment with current_action, produces next_state
+            env.step();
 
             all_done = true;
             for (auto &dq_agent : dq_agents)
             {
-                // auto  next_state_tensor = dq_agent.stateToTensor();
                 dq_agent.replay_buffer_.next_states.push(dq_agent.getCurrentState());
-                float reward = dq_agent.reward(
+                // Both reward strategies below work
+                float reward = dq_agent.calculateReward(
                     env.race_track_->findNearestTrackIndexBruteForce({dq_agent.pos_.x, dq_agent.pos_.y}));
                 dq_agent.replay_buffer_.rewards.push(reward);
-                // dq_agent.learn(dq_agent.current_state_tensor_, dq_agent.current_action_idx_, reward, next_state_tensor);
+                // dq_agent.replay_buffer_.rewards.push(1.F);
+
+                dq_agent.current_state_tensor_ = dq_agent.stateToTensor();
+
                 if (!dq_agent.crashed_)
                 {
-                    // dq_agent.current_state_tensor_ = next_state_tensor;
                     all_done = false;
+                    dq_agent.replay_buffer_.dones.push(0.0F);
+                }
+                else
+                {
+                    dq_agent.replay_buffer_.dones.push(1.0F);
                 }
             }
 
@@ -122,17 +131,11 @@ int main(int argc, char **argv)
                 }
             }
         }
-        // Update DQ networks at the end of each episode in batched-fashion using replay buffer
-        for (auto &dq_agent : dq_agents)
-        {
-            dq_agent.updateDQN();
-        }
+        // Update shared DQ-network at the end of each episode in batched-fashion using replay buffer
+        rl::DQLearnAgent::updateDQN();
 
         episode_idx++;
         reset_idx = pickResetPosition(env, &dq_agents.front());
-        // Share the Q-tables across agents at the end of the episode
-        // if constexpr (kShareCumulativeKnowledge)
-        //     shareCumulativeKnowledge(dq_agents);
     }
 
     return 0;
