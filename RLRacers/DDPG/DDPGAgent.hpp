@@ -29,6 +29,10 @@ class DDPGAgent : public Agent
     static constexpr float kCriticLearningRate{1e-3}; // learning rate for Actor's the Adam optimizer
     static constexpr float kTau{0.005};               // target smoothing factor (weight given to target's network)
 
+    static constexpr size_t                                             kStateDim{5};
+    static constexpr size_t                                             kActionDim{2};
+    typedef ReplayBuffer<kStateDim, kActionDim, float, torch::kFloat32> ReplayBufferDDPG;
+
     DDPGAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
@@ -50,6 +54,8 @@ class DDPGAgent : public Agent
         sensor_ray_angles_.push_back(30.F);
         sensor_ray_angles_.push_back(70.F);
 
+        assert(sensor_ray_angles_.size() == kStateDim);
+
         // Target networks should start with equal weights
         torch::NoGradGuard no_grad;
         for (const auto &key_value_pair : critic_.named_parameters())
@@ -65,15 +71,11 @@ class DDPGAgent : public Agent
     // Create an input tensor to the network from the ego-states and sensor measurement
     torch::Tensor stateToTensor()
     {
-        // populate the input, but normalize the features so that all lie in [0,1]
-        // auto const         speed_norm = speed_ / kSpeedLimit; // since we don't allow (-) speed
-        // auto const         rot_norm   = normalizeAngleDeg(rot_) / kRotationLimit;
         std::vector<float> sensor_hits_norm(sensor_hits_.size());
         for (size_t i{0}; i < sensor_hits_.size(); i++)
         {
             sensor_hits_norm[i] = sensor_hits_[i].norm() / kSensorRange;
         }
-        // return torch::cat({torch::tensor({speed_norm}), torch::tensor({rot_norm}), torch::tensor(sensor_hits_norm)});
         return torch::tensor(sensor_hits_norm);
     }
 
@@ -109,7 +111,7 @@ class DDPGAgent : public Agent
         for (size_t iter{0}; iter < num_update_steps_; iter++)
         {
             // Sample replay buffer
-            ReplayBuffer<Agent::Action>::Samples samples = replay_buffer_.sample(kBatchSize);
+            ReplayBufferDDPG::Samples samples = replay_buffer_.sample(kBatchSize);
 
             torch::Tensor state      = samples.states;
             torch::Tensor next_state = samples.next_states;
@@ -153,14 +155,19 @@ class DDPGAgent : public Agent
         sensor_hits_ = std::vector<Vec2d>(sensor_ray_angles_.size());
     }
 
-    std::vector<float> getCurrentState() const
+    std::array<float, kStateDim> getCurrentState() const
     {
-        std::vector<float> sensor_hits_norm(sensor_hits_.size());
-        for (size_t i{0}; i < sensor_hits_.size(); i++)
+        std::array<float, kStateDim> sensor_hits_norm;
+        for (size_t i{0}; i < kStateDim; i++)
         {
             sensor_hits_norm[i] = sensor_hits_[i].norm() / kSensorRange;
         }
         return sensor_hits_norm;
+    }
+
+    std::array<float, kActionDim> getCurrentAction() const
+    {
+        return {current_action_.throttle_delta, current_action_.steering_delta};
     }
 
   public:
@@ -177,7 +184,7 @@ class DDPGAgent : public Agent
 
     size_t num_update_steps_{200};
 
-    ReplayBuffer<Agent::Action> replay_buffer_;
+    ReplayBufferDDPG replay_buffer_; // specify state and action dimensions
 };
 
 } // namespace rl

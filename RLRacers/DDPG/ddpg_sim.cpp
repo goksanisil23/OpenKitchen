@@ -80,7 +80,7 @@ int main(int argc, char **argv)
             {
                 agent.replay_buffer_.states.push(agent.getCurrentState());
                 agent.updateAction();
-                agent.replay_buffer_.actions.push(agent.current_action_);
+                agent.replay_buffer_.actions.push(agent.getCurrentAction());
             }
 
             env.step();
