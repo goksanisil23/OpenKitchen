@@ -72,9 +72,10 @@ class ReinforceAgent : public Agent
     {
         // Probability associated to each action
         auto action_probs = policy_.forward(current_state_tensor_.unsqueeze(0));
-        // Create a categorical distribution and sample an action
+        // Given action probabilities per each action index, sample an action index
+        // This is more relaxed than greedy policy, still allowing some randomness.
         torch::Tensor sampled_action = torch::multinomial(action_probs, /*num_samples=*/1);
-        // Calculate the log probability of the action
+        // Calculate the log probability of the chosen action
         torch::Tensor log_prob = torch::log(action_probs.index({0, sampled_action.item<int>()}));
         // Save the log probability
         policy_.saved_log_probs.push_back(log_prob);
@@ -90,14 +91,14 @@ class ReinforceAgent : public Agent
     void updatePolicy()
     {
         constexpr float   kEps = std::numeric_limits<float>::epsilon();
-        float             R{0.F};
+        float             cumulative_discounted_reward{0.F};
         std::deque<float> returns;
 
         // Reverse-iterate through rewards and calculate discounted returns
         for (auto r = policy_.rewards.rbegin(); r != policy_.rewards.rend(); ++r)
         {
-            R = *r + kGamma * R;
-            returns.push_front(R);
+            cumulative_discounted_reward = *r + kGamma * cumulative_discounted_reward;
+            returns.push_front(cumulative_discounted_reward);
         }
 
         // Convert returns to a tensor and normalize

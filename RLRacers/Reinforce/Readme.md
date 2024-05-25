@@ -7,8 +7,8 @@ Simple REINFORCE algorithm. In the raycast environment, we have:
     - Steer right with with velocity v/2
     - Steer left with with velocity v/2
 - Robot is rewarded +1 for each step until collision.
-- At each step, actor samples an action from the probabilities provided by the network, given the sensor measurements.
-- After each episode, policy is updated per REINFORCE algorithm:
+- At each step, actor samples an action from the probabilities provided by the network (1 probability per each action-index), given the sensor measurements.
+- After each **episode**, policy is updated per REINFORCE algorithm:
     - Discounted rewards are calculated such that the early episodes contain the upcoming discounted rewards:
         - reward_step_0 = discount*(sum_of_all_rewards_till_end_of_episode)
     - Discounted rewards are scaled with the *log probability* of the action that was taken that led to that reward.

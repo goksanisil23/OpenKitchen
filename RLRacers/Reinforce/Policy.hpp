@@ -8,8 +8,8 @@ struct Policy : torch::nn::Module
 {
     // static constexpr int32_t kInputsFromSensor{15};
     // static constexpr int32_t kInputsSize{kInputsFromSensor + 2};
-    static constexpr int32_t kInputsSize{5};
-    static constexpr int32_t kOutputSize{3};
+    static constexpr int32_t kInputsSize{5}; // Normalized ray distances
+    static constexpr int32_t kOutputSize{3}; // Probability per each action
     static constexpr int32_t kHiddenLayerSize1{128};
 
     Policy()

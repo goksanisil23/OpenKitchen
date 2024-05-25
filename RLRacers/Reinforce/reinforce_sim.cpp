@@ -46,9 +46,9 @@ int main(int argc, char **argv)
 
     env.visualizer_->user_draw_callback_ = [&episode_idx, &agents]()
     {
-        // char buffer[30];
-        // snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, agents.front().epsilon_);
-        // DrawText(buffer, kScreenWidth - 250, 40, 20, YELLOW);
+        char buffer[30];
+        snprintf(buffer, sizeof(buffer), "Episode: %d", episode_idx);
+        DrawText(buffer, kScreenWidth - 150, 40, 20, YELLOW);
     };
 
     bool all_done{false};
