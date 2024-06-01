@@ -92,7 +92,7 @@ int main(int argc, char **argv)
                 }
                 // else
                 // {
-                //     agent.experience_buffer_.saved_rewards.push_back(-200.F);
+                //     agent.experience_buffer_.saved_rewards.push_back(-5.F);
                 // }
             }
         }
