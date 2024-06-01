@@ -177,8 +177,7 @@ class PPOAgent : public Agent
         for (auto i{0}; i < kEpochPerEpisode; i++)
         {
             int buffer_size = static_cast<int>(experience_buffer_.saved_actions.size());
-            std::cout << "total samples " << buffer_size << std::endl;
-            std::cout << "left samples: " << buffer_size % kBatchSize << std::endl;
+            // We'll have some leftover samples that doesnt fit kBatchSize multiples
             for (auto idx_offset{0}; idx_offset < (buffer_size - kBatchSize); idx_offset += kBatchSize)
             {
                 // Sample
@@ -187,6 +186,7 @@ class PPOAgent : public Agent
 
                 auto values = critic_.forward(states_samples);
 
+                // advantages is related to the actor, hence we detach the values coming from the critic network to decouple their training
                 torch::Tensor advantages = disc_rewards_samples - values.detach();
 
                 // Generate new log probabilities with the updated actor, on the recorded states
@@ -196,14 +196,12 @@ class PPOAgent : public Agent
                 // Ratio represents difference between the old and new action probs
                 torch::Tensor ratios = torch::exp(new_action_log_probs - log_probs_samples);
 
-                // The clipping limits the effective change you can make at each step in order to improve stability
-
-                // So at first, none of our updates will be clipped and we are guaranteed to learn something from these examples.
-                // However, as we update π using multiple epochs, the objective will start hitting the clipping limits,
-                // the gradient will go to 0 for those samples, and the training will gradually stop
-                torch::Tensor surr1       = ratios * advantages;
-                torch::Tensor surr2       = torch::clamp(ratios, 1.0 - kClip, 1.0 + kClip) * advantages;
-                torch::Tensor actor_loss  = -torch::min(surr1, surr2).mean();
+                // The clipping limits the effective change actor can make at each step in order to improve stability.
+                // So at first, none of actor updates will be clipped and its guaranteed to learn something from these samples. But as actor changes along batches and epochs, saved vs newly generated action probabilities will diverge, hence ratio will grow
+                torch::Tensor surr1      = ratios * advantages;
+                torch::Tensor surr2      = torch::clamp(ratios, 1.0 - kClip, 1.0 + kClip) * advantages;
+                torch::Tensor actor_loss = -torch::min(surr1, surr2).mean();
+                // Note that values are not detached here since it needs to minimize the difference between predicted & actual discounted returns
                 torch::Tensor critic_loss = torch::mse_loss(values, disc_rewards_samples);
 
                 actor_optimizer_.zero_grad();
