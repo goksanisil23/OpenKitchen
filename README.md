@@ -16,6 +16,8 @@ https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8
 
 ## [REINFORCE with 2D Raycast](/RLRacers/Reinforce)
 
+## [PPO with 2D Raycast](/RLRacers/PPO)
+
 ## [DDPG with 2D Raycast](/RLRacers/DDPG)
 
 ## [End-to-end CNN with Birdseye View](/E2E_Supervised)
