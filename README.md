@@ -22,3 +22,5 @@ https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8
 
 ## [End-to-end CNN with Birdseye View](/E2E_Supervised) :white_check_mark
 https://github.com/goksanisil23/OpenKitchen/assets/42399822/b18c4038-f19f-4481-9877-90ba52d36f3d
+
+:smile:
