@@ -10,11 +10,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../../Paths.cmake)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Environment ${CMAKE_CURRENT_BINARY_DIR}/Environment)
 set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
-################## Q-learning ################## 
+################## PPO-learning ################## 
 set(PPO_SRCS
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp    
     ${CMAKE_CURRENT_SOURCE_DIR}/PPOAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ppo_sim.cpp
 )
@@ -28,12 +25,12 @@ target_include_directories(ppo SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(ppo "${TORCH_LIBRARIES}" pthread raylib dl rt)
+target_link_libraries(ppo "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
 target_link_directories(ppo PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(ppo PUBLIC
-${CMAKE_CURRENT_SOURCE_DIR}
-${ENVIRONMENT_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ENVIRONMENT_INCLUDE_DIR}
 )
 
 target_compile_options(ppo PUBLIC ${COMPILER_FLAGS})

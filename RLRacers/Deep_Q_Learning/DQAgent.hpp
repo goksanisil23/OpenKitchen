@@ -122,6 +122,10 @@ class DQLearnAgent : public Agent
             torch::Tensor action_index = samples.actions;
             torch::Tensor done         = samples.dones;
 
+            std::cout << "state: " << state.sizes() << std::endl;
+            std::cout << "reward: " << reward.sizes() << std::endl;
+            std::cout << "action_index: " << action_index.sizes() << std::endl;
+
             auto q_values      = nn_.forward(state);
             auto next_q_values = nn_.forward(next_state).detach();
 

@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     }
     for (const auto &track_file : track_files)
     {
-        rl::Environment   env(track_file);
+        Environment       env(track_file);
         const std::string track_name{env.race_track_->track_name_};
 
         const float        start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};

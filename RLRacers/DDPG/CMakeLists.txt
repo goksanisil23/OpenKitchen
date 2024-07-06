@@ -12,9 +12,6 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ################## Q-learning ################## 
 set(DDPG_SRCS
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DDPGAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ddpg_sim.cpp
 )
@@ -28,7 +25,7 @@ target_include_directories(DDPG SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(DDPG "${TORCH_LIBRARIES}" pthread raylib dl rt)
+target_link_libraries(DDPG "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
 target_link_directories(DDPG PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(DDPG PUBLIC

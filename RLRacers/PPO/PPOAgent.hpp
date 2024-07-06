@@ -26,7 +26,7 @@ class PPOAgent : public Agent
     static constexpr float kVelocity{60.0};
     static constexpr float kSteeringDelta{5}; // degrees
 
-    static constexpr float kClip{0.2};
+    static constexpr float kClip{0.6};
     static constexpr float kLearningRate{0.01}; // learning rate for the Adam optimizer
 
     static constexpr size_t kStateDim{5};

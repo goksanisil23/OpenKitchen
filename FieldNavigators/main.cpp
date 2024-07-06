@@ -6,19 +6,19 @@
 #include <string>
 #include <vector>
 
-#include "Environment/Environment.hpp"
+#include "Environment/Environment.h"
 #include "PotentialFieldAgent.hpp"
 #include "VFHAgent.hpp"
 
 using FieldAgent             = VFHAgent; // options = [PotFieldAgent,VFHAgent]
 constexpr int16_t kNumAgents = 1;
 
-int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
+int32_t pickResetPosition(const Environment &env, const Agent *agent)
 {
     return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
 }
 
-size_t getGoalPointIdx(const FieldAgent &agent, const rl::Environment &env)
+size_t getGoalPointIdx(const FieldAgent &agent, const Environment &env)
 {
     size_t current_idx = env.race_track_->findNearestTrackIndexBruteForce({agent.pos_.x, agent.pos_.y});
     size_t goal_index  = (current_idx + FieldAgent::kLookAheadIdx) % env.race_track_->track_data_points_.x_m.size();
@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    rl::Environment env(argv[1]);
+    Environment env(argv[1]);
 
     std::vector<FieldAgent> agents;
     agents.reserve(kNumAgents);

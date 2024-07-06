@@ -11,11 +11,7 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ################## Q-learning ################## 
 set(Q_LEARN_SRCS
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/QAgent.hpp
-    # ${CMAKE_CURRENT_SOURCE_DIR}/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/q_racer_sim.cpp
 )
 
@@ -28,7 +24,7 @@ target_include_directories(q_learn SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(q_learn pthread raylib dl rt)
+target_link_libraries(q_learn pthread raylib dl rt Environment)
 target_link_directories(q_learn PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(q_learn PUBLIC

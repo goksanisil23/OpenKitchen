@@ -84,7 +84,7 @@ class DataCollectorAgent : public PotFieldAgent
         //           << std::endl;
     }
 
-    void saveMeasurement(const std::string &track_name, rl::Environment &env, const int left_right_middle)
+    void saveMeasurement(const std::string &track_name, Environment &env, const int left_right_middle)
     {
         std::string filename;
         if constexpr (kMeasurementMode == MeasurementMode::BirdseyeView)
@@ -126,7 +126,7 @@ class DataCollectorAgent : public PotFieldAgent
     size_t            ctr_{0};
 };
 
-size_t getGoalPointIdx(const DataCollectorAgent &agent, const rl::Environment &env)
+size_t getGoalPointIdx(const DataCollectorAgent &agent, const Environment &env)
 {
     size_t current_idx = env.race_track_->findNearestTrackIndexBruteForce({agent.pos_.x, agent.pos_.y});
     size_t goal_index =
@@ -135,7 +135,7 @@ size_t getGoalPointIdx(const DataCollectorAgent &agent, const rl::Environment &e
 }
 
 raylib::Vector2 determineGoalPoint(const DataCollectorAgent &agent,
-                                   const rl::Environment    &env,
+                                   const Environment        &env,
                                    const size_t              goal_index,
                                    const int                 left_right_middle)
 {
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
 
     for (const auto &track_file : track_files)
     {
-        rl::Environment   env(track_file);
+        Environment       env(track_file);
         const std::string track_name{env.race_track_->track_name_};
 
         float start_pos_x, start_pos_y;

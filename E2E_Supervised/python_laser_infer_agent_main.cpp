@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <vector>
 
-#include "Environment/Environment.hpp"
+#include "Environment/Environment.h"
 
 // Agent that listens to a python process doing the inference
 // Sends the measurements over shared memory and receives the actions back
@@ -92,7 +92,7 @@ class PythonInferAgent : public Agent
     float action_response_buffer_[2]; // acceleration & steering
 };
 
-int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
+int32_t pickResetPosition(const Environment &env, const Agent *agent)
 {
     return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
 }
@@ -105,7 +105,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    rl::Environment   env(argv[1]);
+    Environment       env(argv[1]);
     const std::string track_name{env.race_track_->track_name_};
 
     const float      start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};

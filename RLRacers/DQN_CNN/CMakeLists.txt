@@ -12,9 +12,6 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ################## Deep-Q-learning ################## 
 set(DQ_CNN_SRCS
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DQCNNAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CNN.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/dq_cnn_racer_sim.cpp
@@ -29,7 +26,7 @@ target_include_directories(dq_cnn SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(dq_cnn "${TORCH_LIBRARIES}" pthread raylib dl rt)
+target_link_libraries(dq_cnn "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
 target_link_directories(dq_cnn PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(dq_cnn PUBLIC

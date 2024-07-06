@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "Environment/Environment.hpp"
+#include "Environment/Environment.h"
 #include "QAgent.hpp"
 
 constexpr int16_t kNumAgents{30};
@@ -15,7 +15,7 @@ constexpr bool kEnableGreedyAgent{false};
 // at the end of each episode, take the average of all q-tables and distribute back to all agents
 constexpr bool kShareCumulativeKnowledge{false}; // succeeds both with and without
 
-int32_t pickResetPosition(const rl::Environment &env, const Agent *agent)
+int32_t pickResetPosition(const Environment &env, const Agent *agent)
 {
     return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
 }
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    rl::Environment env(argv[1]);
+    Environment env(argv[1]);
 
     std::vector<rl::QLearnAgent> q_agents;
     q_agents.reserve(kNumAgents);
