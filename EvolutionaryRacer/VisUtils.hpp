@@ -1,6 +1,6 @@
 // Utility functions specific to Evolutionary Learning Environment
 
-#include "Environment/RaceTrack.hpp"
+#include "Environment/RaceTrack.h"
 #include "GeneticAgent.hpp"
 
 #include "raylib-cpp.hpp"

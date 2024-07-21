@@ -23,12 +23,16 @@ class GeneticAgent : public Agent
     static constexpr float kSteeringDeltaLow{1.0}; // degrees
     static constexpr float kSteeringDeltaHigh{4.0};
 
-    GeneticAgent() = default;
+    GeneticAgent()
+    {
+        movement_mode_ = MovementMode::ACCELERATION;
+    }
 
     // Used when all agents are created initially, with randomized weights
     GeneticAgent(raylib::Vector2 start_pos, float start_rot, int16_t id)
         : Agent(start_pos, start_rot, id), nn_{Network()}
     {
+        movement_mode_ = MovementMode::ACCELERATION;
     }
 
     void updateAction() override

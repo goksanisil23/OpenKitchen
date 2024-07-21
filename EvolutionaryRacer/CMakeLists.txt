@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(GeneticLearner)
 set(BINARY_NAME genetic_learner_sim)
 
@@ -14,7 +14,7 @@ set(GENETIC_LEARNER_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/GeneticAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Mating.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/EnvUtils.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MiscUtils.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VisUtils.hpp
 )
 
@@ -30,19 +30,8 @@ target_include_directories(${BINARY_NAME} SYSTEM PRIVATE
 )
 
 target_include_directories(${BINARY_NAME} PUBLIC
-${CMAKE_CURRENT_SOURCE_DIR}
-${ENVIRONMENT_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ENVIRONMENT_INCLUDE_DIR}
 )
 
 target_compile_options(${BINARY_NAME} PUBLIC ${COMPILER_FLAGS})
-
-# add_executable(laser_reader laser_reader.cpp)
-# target_include_directories(laser_reader PRIVATE 
-#     ${RAYLIB_CPP_INCLUDE_DIR}
-#     ${RAYLIB_INCLUDE_DIR}
-#     ${SHARED_MEM_LIB_DIR}
-#     ${ENVIRONMENT_INCLUDE_DIR}
-# )
-# target_link_directories(laser_reader PRIVATE ${RAYLIB_LINK_DIR})
-# target_link_libraries(laser_reader PRIVATE raylib)
-# target_compile_options(laser_reader PRIVATE ${COMMON_FLAGS})

@@ -13,7 +13,7 @@ RaceTrack::RaceTrack(const std::string &track_csv_path) : track_name_{getTrackNa
     finish_line_ = {left_bound_outer_.front(), left_bound_outer_.back()};
 }
 
-size_t RaceTrack::findNearestTrackIndexBruteForce(const Vec2d &query_pt)
+size_t RaceTrack::findNearestTrackIndexBruteForce(const Vec2d &query_pt) const
 {
     float  min_distance = std::numeric_limits<float>::max();
     size_t min_idx{0};

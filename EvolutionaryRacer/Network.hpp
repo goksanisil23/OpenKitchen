@@ -94,7 +94,7 @@ class Network
     static constexpr uint16_t            kOutputSize{6};
     static constexpr uint16_t            kHiddenLayerSize{30};
     static constexpr ClassificationLayer kClassificationLayerType{ClassificationLayer::Sigmoid};
-    static constexpr bool                kInitFromCheckpoint{true};
+    static constexpr bool                kInitFromCheckpoint{false};
 
     Network()
     {

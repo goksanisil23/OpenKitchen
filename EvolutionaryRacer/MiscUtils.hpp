@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include "Environment/RaceTrack.h"
 #include "GeneticAgent.hpp"
 
 namespace genetic
@@ -60,24 +61,7 @@ void saveBestAgentNetwork(const std::vector<genetic::GeneticAgent> &agents)
     // Compare previous action set
 }
 
-bool shouldResetEpisode(const std::vector<GeneticAgent> &agents)
-{
-    size_t num_drv_crashed{0};
-    for (const auto &driver : agents)
-    {
-        if (driver.crashed_)
-        {
-            num_drv_crashed++;
-        }
-    }
-    if (num_drv_crashed == agents.size())
-    {
-        return true;
-    }
-    return false;
-}
-
-void assignScores(std::vector<GeneticAgent> &agents, RaceTrack &race_track)
+void assignScores(std::vector<GeneticAgent> &agents, const RaceTrack &race_track)
 {
     for (auto &agent : agents)
     {
