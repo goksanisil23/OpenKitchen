@@ -12,3 +12,6 @@ Simple q-learning algorithm. In the raycast environment, we have:
     - Progression along the track giving proportional rewards
 
 In this implementation, after each episode, the robot colony shares their Q-tables with each other by taking the average of each q-value associated to all state-action pairs.
+
+
+https://github.com/goksanisil23/OpenKitchen/assets/42399822/9cf026f0-b661-4b51-8a8c-f1c78624fe5f
