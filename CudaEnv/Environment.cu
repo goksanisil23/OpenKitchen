@@ -167,21 +167,25 @@ Environment::Environment()
 {
     // Agent resource initialization
     cudaMallocHost(&h_agents_, NUM_AGENTS * sizeof(Agent));
+    const int min_start_y{50};
+    const int max_start_y{SCREEN_HEIGHT - 50};
     // 1st team
-    for (size_t i = 0; i < NUM_AGENTS_TEAM_A; ++i)
+    for (int32_t i = 0; i < NUM_AGENTS_TEAM_A; ++i)
     {
         h_agents_[i].x        = 50.F;
-        h_agents_[i].y        = SCREEN_HEIGHT / (NUM_AGENTS_TEAM_A)*i + 50.F;
+        h_agents_[i].y        = min_start_y + rand() % (max_start_y - min_start_y + 1);
         h_agents_[i].heading  = 0.F * DEG2RAD;
         h_agents_[i].velocity = kInitVelocity;
+        printf("a: %f\n", h_agents_[i].y);
     }
     // 2nd team
-    for (size_t i = NUM_AGENTS_TEAM_B; i < NUM_AGENTS; ++i)
+    for (int32_t i = 0; i < NUM_AGENTS_TEAM_B; ++i)
     {
-        h_agents_[i].x        = SCREEN_WIDTH - 50.F;
-        h_agents_[i].y        = SCREEN_HEIGHT / (NUM_AGENTS_TEAM_B) * (i - NUM_AGENTS_TEAM_B) + 50.F;
-        h_agents_[i].heading  = 180.F * DEG2RAD;
-        h_agents_[i].velocity = kInitVelocity;
+        h_agents_[i + NUM_AGENTS_TEAM_A].x        = SCREEN_WIDTH - 50.F;
+        h_agents_[i + NUM_AGENTS_TEAM_A].y        = min_start_y + rand() % (max_start_y - min_start_y + 1);
+        h_agents_[i + NUM_AGENTS_TEAM_A].heading  = 180.F * DEG2RAD;
+        h_agents_[i + NUM_AGENTS_TEAM_A].velocity = kInitVelocity;
+        printf("b: %f\n", h_agents_[i].y);
     }
 
     cudaMalloc(&d_agents_, NUM_AGENTS * sizeof(Agent));
@@ -228,7 +232,7 @@ void Environment::step()
     ClearBackground(BLACK);
     for (int i{0}; i < NUM_AGENTS; i++)
     {
-        const Color agent_color = (i < (NUM_AGENTS / 2)) ? TEAM_A_COLOR : TEAM_B_COLOR;
+        const Color agent_color = (i < NUM_AGENTS_TEAM_A) ? TEAM_A_COLOR : TEAM_B_COLOR;
         DrawCircleV({h_agents_[i].x, SCREEN_HEIGHT - h_agents_[i].y}, kAgentRadius, agent_color);
         DrawText(std::to_string(i).c_str(), h_agents_[i].x, SCREEN_HEIGHT - h_agents_[i].y, 10, WHITE);
     }

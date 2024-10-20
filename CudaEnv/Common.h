@@ -24,7 +24,7 @@ struct Agent
 };
 
 constexpr int32_t NUM_AGENTS_TEAM_A = 5;
-constexpr int32_t NUM_AGENTS_TEAM_B = 5;
+constexpr int32_t NUM_AGENTS_TEAM_B = 8;
 
 constexpr int32_t NUM_RAYS_PER_AGENT = 20;
 constexpr int32_t NUM_AGENTS         = NUM_AGENTS_TEAM_A + NUM_AGENTS_TEAM_B;
