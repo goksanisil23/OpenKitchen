@@ -12,7 +12,7 @@ class Agent
     static constexpr float kSpeedLimit{100.F};
     static constexpr float kRotationLimit{360.F};
     // displacement threshold used to indicate an agent is standstill
-    static constexpr float kDeltaStandstillLimit{0.001F};
+    static constexpr float kDeltaStandstillLimit{0.01F};
     // # of consecutive standstill iterations after which we reset the episode
     static constexpr uint32_t kStandstillTimeout{200};
 

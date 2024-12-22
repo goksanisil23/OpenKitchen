@@ -11,9 +11,6 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ################## Q-learning ################## 
 set(COLLECT_DATA
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/collect_data_main.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../PotentialFieldAgent.hpp
 )
@@ -27,7 +24,7 @@ target_include_directories(collect_data_racetrack SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(collect_data_racetrack raylib pthread dl rt)
+target_link_libraries(collect_data_racetrack raylib pthread dl rt Environment)
 target_link_directories(collect_data_racetrack PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(collect_data_racetrack PUBLIC

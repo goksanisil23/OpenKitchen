@@ -1,10 +1,15 @@
 /* Runs through all the race tracks available under the given folder and generates: 
 
+Measurement mode is selected via kMeasurementMode:
 A) 2d pointcloud measurement from robot at that step + (velocity + delta_steering) action
 B) Birdseye image view from robot at that step + (velocity + delta_steering) action
 
 Usage:
 ./collect_data_racetracks path_to_racetracks/racetrack-database/tracks/
+
+A specific track can be selected by specifying kTrackName
+
+Control inputs are bounded to (-+kSteeringAngleClampDeg) degrees for steering, and [0, 100] for throttle
 
 Pointclouds or images will be saved under measurements_and_actions folder
 
@@ -28,10 +33,13 @@ B) Birdseye image
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <vector>
 
-#include "../../Environment/Environment.hpp"
 #include "../PotentialFieldAgent.hpp"
+#include "Environment/Environment.h"
+
+static constexpr std::string_view kTrackName = "IMS.csv";
 
 class DataCollectorAgent : public PotFieldAgent
 {
@@ -42,10 +50,9 @@ class DataCollectorAgent : public PotFieldAgent
         BirdseyeView = 2
     };
 
-    static constexpr MeasurementMode kMeasurementMode{MeasurementMode::BirdseyeView};
-    // static constexpr size_t          kBirdseyeSavePeriod{10};
-    static constexpr size_t kBirdseyeSavePeriod{1};
-    static constexpr float  kSteeringAngleClampDeg{15.0};
+    static constexpr MeasurementMode kMeasurementMode{MeasurementMode::Laser2d};
+    static constexpr size_t          kBirdseyeSavePeriod{1};
+    static constexpr float           kSteeringAngleClampDeg{2.0};
 
     DataCollectorAgent(raylib::Vector2 start_pos, float start_rot, int16_t id) : PotFieldAgent(start_pos, start_rot, id)
     {
@@ -64,24 +71,9 @@ class DataCollectorAgent : public PotFieldAgent
     void updateAction() override
     {
         PotFieldAgent::updateAction();
-        // Saturate it  degrees
+        // Saturate it in degrees
         current_action_.steering_delta =
             std::clamp(current_action_.steering_delta, -kSteeringAngleClampDeg, kSteeringAngleClampDeg);
-        // Discretize the continuous action from the PotentialFieldAgent
-        // if (current_action_.steering_delta >= kSteeringAngleClampDeg)
-        // {
-        //     current_action_.steering_delta = kSteeringAngleClampDeg;
-        // }
-        // else if ((current_action_.steering_delta < -kSteeringAngleClampDeg))
-        // {
-        //     current_action_.steering_delta = -kSteeringAngleClampDeg;
-        // }
-        // else
-        // {
-        //     current_action_.steering_delta = 0.F;
-        // }
-        // std::cout << "action: " << current_action_.throttle_delta << " " << current_action_.steering_delta
-        //           << std::endl;
     }
 
     void saveMeasurement(const std::string &track_name, Environment &env, const int left_right_middle)
@@ -180,12 +172,9 @@ int main(int argc, char **argv)
     {
         if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".csv")
         {
-            if (entry.path().filename() == "IMS.csv")
-            // if (entry.path().filename() == "Montreal.csv")
-            // if (entry.path().filename() == "BrandsHatch.csv")
-            // if (entry.path().filename() == "Zandvoort.csv")
-            // if (entry.path().filename() == "Monza.csv")
+            if (entry.path().filename() == kTrackName)
             {
+                // Add 3 times since we want to collect data for left, right and middle
                 track_files.push_back(entry.path());
                 track_files.push_back(entry.path());
                 track_files.push_back(entry.path());

@@ -66,7 +66,6 @@ class PotFieldAgent : public Agent
                 // COmpute force vector for this obstacle
                 float force_magnitude =
                     kRepulsiveConstant * (1.f / sensor_hits_[i].norm() - 1.f / kObstacleEffectRange);
-                // std::cout << "Repulsion: " << force_magnitude << std::endl;
                 repulsive_force.x += std::cos(angle * M_PI / 180.f) * force_magnitude;
                 repulsive_force.y += std::sin(angle * M_PI / 180.f) * force_magnitude;
             }
