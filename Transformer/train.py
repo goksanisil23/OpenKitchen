@@ -150,6 +150,7 @@ def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1
                 },
                 "best_model.pth",
             )
+            print(f"-------> Saved best Validation Loss (unnormalized): {val_loss:.6f}")
 
         print(f"Epoch {epoch+1}/{num_epochs}:")
         print(f"Training Loss (unnormalized): {train_loss:.6f}")
@@ -157,7 +158,9 @@ def train_model(model, train_loader, val_loader, num_epochs=100, learning_rate=1
 
 
 #################################################
-data_dir = "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/measurements_and_actions_IMS"
-train_loader, val_loader = prepare_dataloaders(data_dir, train_split=0.8, batch_size=32)
+data_dir = "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/measurements_and_actions"
+train_loader, val_loader = prepare_dataloaders(
+    data_dir, train_split=0.8, batch_size=128
+)
 model = LidarTransformer(n_points=7)
-train_model(model, train_loader, val_loader, num_epochs=10)
+train_model(model, train_loader, val_loader, num_epochs=100)

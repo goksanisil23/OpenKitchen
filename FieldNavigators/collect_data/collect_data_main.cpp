@@ -7,7 +7,7 @@ B) Birdseye image view from robot at that step + (velocity + delta_steering) act
 Usage:
 ./collect_data_racetracks path_to_racetracks/racetrack-database/tracks/
 
-A specific track can be selected by specifying kTrackName
+A specific track can be selected by specifying kTrackName, if empty all tracks will be used
 
 Control inputs are bounded to (-+kSteeringAngleClampDeg) degrees for steering, and [0, 100] for throttle
 
@@ -39,7 +39,7 @@ B) Birdseye image
 #include "../PotentialFieldAgent.hpp"
 #include "Environment/Environment.h"
 
-static constexpr std::string_view kTrackName = "IMS.csv";
+static constexpr std::string_view kTrackName = "";
 
 class DataCollectorAgent : public PotFieldAgent
 {
@@ -52,7 +52,7 @@ class DataCollectorAgent : public PotFieldAgent
 
     static constexpr MeasurementMode kMeasurementMode{MeasurementMode::Laser2d};
     static constexpr size_t          kBirdseyeSavePeriod{1};
-    static constexpr float           kSteeringAngleClampDeg{2.0};
+    static constexpr float           kSteeringAngleClampDeg{10.0};
 
     DataCollectorAgent(raylib::Vector2 start_pos, float start_rot, int16_t id) : PotFieldAgent(start_pos, start_rot, id)
     {
@@ -113,8 +113,7 @@ class DataCollectorAgent : public PotFieldAgent
     }
 
   public:
-    // const std::string directory_{"measurements_and_actions"};
-    const std::string directory_{"measurements_and_actions_IMS"};
+    const std::string directory_{"measurements_and_actions"};
     size_t            ctr_{0};
 };
 
@@ -172,7 +171,14 @@ int main(int argc, char **argv)
     {
         if (std::filesystem::is_regular_file(entry) && entry.path().extension() == ".csv")
         {
-            if (entry.path().filename() == kTrackName)
+            if (kTrackName == "")
+            {
+                // Add 3 times since we want to collect data for left, right and middle
+                track_files.push_back(entry.path());
+                track_files.push_back(entry.path());
+                track_files.push_back(entry.path());
+            }
+            else if (entry.path().filename() == kTrackName)
             {
                 // Add 3 times since we want to collect data for left, right and middle
                 track_files.push_back(entry.path());

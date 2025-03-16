@@ -10,26 +10,26 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../Paths.cmake)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../Environment ${CMAKE_CURRENT_BINARY_DIR}/Environment)
 set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 
-##################  ################## 
-set(TRANSFORMER_RACER_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/infer_agent_main.cpp
-)
+########### SIMPLE TEST WITH TRACED PYTORCH MODEL ###########
+add_executable(infer_torch_traced_test.cpp infer_torch_traced_test.cpp)
+target_link_libraries(infer_torch_traced_test.cpp "${TORCH_LIBRARIES}")
+target_compile_options(infer_torch_traced_test.cpp PUBLIC ${COMPILER_FLAGS})
+###############################
+add_executable(infer_torch_traced_main infer_torch_traced_main.cpp)
 
-add_executable(transformer_racer ${TRANSFORMER_RACER_SRCS})
-
-target_include_directories(transformer_racer SYSTEM PRIVATE 
+target_include_directories(infer_torch_traced_main SYSTEM PRIVATE 
     ${RAYLIB_CPP_INCLUDE_DIR}
     ${RAYLIB_INCLUDE_DIR}
-    ${SHARED_MEM_LIB_DIR}
     ${EIGEN_DIR}
 )
 
-target_link_libraries(transformer_racer "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
-target_link_directories(transformer_racer PRIVATE ${RAYLIB_LINK_DIR})
+target_link_libraries(infer_torch_traced_main "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
+target_link_libraries(infer_torch_traced_main "${TORCH_LIBRARIES}")
+target_link_directories(infer_torch_traced_main PRIVATE ${RAYLIB_LINK_DIR})
 
-target_include_directories(transformer_racer PUBLIC
+target_include_directories(infer_torch_traced_main PUBLIC
 ${CMAKE_CURRENT_SOURCE_DIR}
 ${ENVIRONMENT_INCLUDE_DIR}
 )
 
-target_compile_options(transformer_racer PUBLIC ${COMPILER_FLAGS})
+target_compile_options(infer_torch_traced_main PUBLIC ${COMPILER_FLAGS})

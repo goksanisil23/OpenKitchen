@@ -10,7 +10,7 @@
 #include "PotentialFieldAgent.hpp"
 #include "VFHAgent.hpp"
 
-using FieldAgent             = VFHAgent; // options = [PotFieldAgent,VFHAgent]
+using FieldAgent             = PotFieldAgent; // options = [PotFieldAgent,VFHAgent]
 constexpr int16_t kNumAgents = 1;
 
 int32_t pickResetPosition(const Environment &env, const Agent *agent)
