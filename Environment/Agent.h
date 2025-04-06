@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "Typedefs.h"
-#include "raylib-cpp.hpp"
 
 class Agent
 {
@@ -19,7 +18,7 @@ class Agent
     struct Action
     {
         float throttle_delta{0.F}; // unit depends on the MovementMode
-        float steering_delta{0.F};
+        float steering_delta{0.F}; // [deg]
     };
 
     enum class MovementMode
@@ -31,19 +30,19 @@ class Agent
 
     Agent() = default;
 
-    Agent(raylib::Vector2 start_pos, float start_rot, int16_t id);
+    Agent(Vec2d start_pos, float start_rot, int16_t id);
 
     virtual ~Agent()
     {
     }
 
-    virtual void reset(const raylib::Vector2 &reset_pos, const float reset_rot);
+    virtual void reset(const Vec2d &reset_pos, const float reset_rot);
 
     void move();
     void moveViaVelocity();
     void moveViaAcceleration();
     void moveViaUserInput();
-    void setPose(const raylib::Vector2 pos, const float rot);
+    void setPose(const Vec2d pos, const float rot);
     bool isDone() const;
 
     inline void setSensorRayDrawing(const bool draw_sensor_rays)
@@ -59,14 +58,14 @@ class Agent
     virtual void updateAction() = 0;
 
   public:
-    raylib::Vector2 pos_{};
-    float           speed_{0.F};
-    float           acceleration_{0.F};
-    float           rot_{0.F}; // degrees
-    float           radius_{9.0F};
-    float           sensor_offset_{0.0F}; // distance of the sensor from the robot center, along heading direction
-    int16_t         id_{};
-    raylib::Color   color_{raylib::Color::DarkGray()};
+    Vec2d   pos_{};
+    float   speed_{0.F};
+    float   acceleration_{0.F};
+    float   rot_{0.F}; // degrees
+    float   radius_{9.0F};
+    float   sensor_offset_{0.0F}; // distance of the sensor from the robot center, along heading direction
+    int16_t id_{};
+    int     color_[4]{80, 80, 80, 255}; // RGBA, Dark Gray
 
     bool has_raycast_sensor_{true};
     bool manual_control_enabled_{true};

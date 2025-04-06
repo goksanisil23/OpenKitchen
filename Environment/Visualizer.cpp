@@ -76,115 +76,43 @@ Visualizer::Visualizer()
     camera_.zoom     = 3.0f;
 }
 
-void Visualizer::activateDrawing()
+void Visualizer::activateDrawing(bool const clear_background)
 {
     render_target_.BeginMode();
-    window_->ClearBackground(BLACK);
+    if (clear_background)
+        window_->ClearBackground(BLACK);
 }
 
-void Visualizer::drawAgent(Agent &agent, raylib::Image &render_buffer)
+void Visualizer::drawAgent(Agent &agent)
 {
-    raylib::Vector2 agent_texture_coord{agent.pos_.x, kScreenHeight - agent.pos_.y};
-
-    raylib::Color color = (agent.crashed_) ? raylib::Color((Color){253, 249, 0, 150}) : agent.color_;
-    render_buffer.DrawCircle(agent_texture_coord, agent.radius_, color);
+    raylib::Color color = (agent.crashed_)
+                              ? raylib::Color((Color){253, 249, 0, 150})
+                              : raylib::Color(agent.color_[0], agent.color_[1], agent.color_[2], agent.color_[3]);
+    DrawCircle(agent.pos_.x, agent.pos_.y, agent.radius_, color);
 
     // Draw heading line for robot
     if (agent.draw_agent_heading_)
     {
-        raylib::Vector2 heading_end = {agent_texture_coord.x + agent.radius_ * cos(DEG2RAD * agent.rot_),
-                                       agent_texture_coord.y + agent.radius_ * -sin(DEG2RAD * agent.rot_)};
-        // render_buffer.DrawLine(agent_texture_coord, heading_end, WHITE);
-        render_buffer.DrawCircle((agent_texture_coord + heading_end) / 2.F, agent.radius_ / 2.F, WHITE);
+        Vec2d       heading_end        = {agent.pos_.x + agent.radius_ * cos(kDeg2Rad * agent.rot_),
+                                          agent.pos_.y + agent.radius_ * sin(kDeg2Rad * agent.rot_)};
+        Vec2d const heading_circle_pos = (Vec2d{agent.pos_.x, agent.pos_.y} + heading_end) / 2.F;
+        DrawCircle(heading_circle_pos.x, heading_circle_pos.y, agent.radius_ / 2.F, WHITE);
     }
 
-    if (agent.draw_sensor_rays_ && agent.has_raycast_sensor_)
-    {
-        drawSensorRays(agent.pixels_until_hit_, render_buffer);
-    }
+    // if (agent.draw_sensor_rays_ && agent.has_raycast_sensor_)
+    // {
+    //     for (auto const &hit : agent.sensor_hits_)
+    //     {
+    //         DrawCircle(hit.x, hit.y, 2.0F, raylib::Color::DarkPurple());
+    //         // std::cout << "Sensor hit: " << hit.x << ", " << hit.y << std::endl;
+    //     }
+    //     // std::cout << "------------" << std::endl;
+    // }
 }
 
 void Visualizer::setAgentToFollow(const Agent *agent)
 {
     agent_to_follow_ = agent;
-}
-
-void Visualizer::updateSensor(Agent &agent, const raylib::Image &render_buffer)
-{
-    float ray_start_x, ray_start_y;
-    float drv_rot_rad = agent.rot_ * DEG2RAD; // Convert angle to radians
-
-    ray_start_x = agent.pos_.x + agent.sensor_offset_ * cos(DEG2RAD * agent.rot_);
-    ray_start_y = kScreenHeight - agent.pos_.y + agent.sensor_offset_ * -sin(DEG2RAD * agent.rot_);
-
-    if (agent.has_raycast_sensor_)
-    {
-        agent.sensor_hits_.clear();
-        agent.pixels_until_hit_.clear();
-        for (const auto angle : agent.sensor_ray_angles_)
-        {
-            const float end_pos_x = ray_start_x + agent.sensor_range_ * cos(DEG2RAD * (agent.rot_ + angle));
-            const float end_pos_y = ray_start_y + agent.sensor_range_ * -sin(DEG2RAD * (agent.rot_ + angle));
-
-            auto pixels_along_ray = bresenham(ray_start_x, ray_start_y, end_pos_x, end_pos_y);
-            bool hit_found{false};
-            for (const auto pix : pixels_along_ray)
-            {
-                // We check for the sensor hit based on the boundaries which are determined by the color
-                const int   pix_idx{pix.y * render_buffer.width + pix.x};
-                const Color pix_color = reinterpret_cast<Color *>(render_buffer.data)[pix_idx];
-                if (Visualizer::isBarrierPixel(pix_color))
-                {
-                    // Calculate hit point relative to the robot
-                    Vec2d hit_pt_relative;
-                    float xTranslated = pix.x - ray_start_x;
-                    float yTranslated = pix.y - ray_start_y;
-                    hit_pt_relative.x = xTranslated * cos(drv_rot_rad) - yTranslated * sin(drv_rot_rad);
-                    hit_pt_relative.y = xTranslated * sin(drv_rot_rad) + yTranslated * cos(drv_rot_rad);
-                    agent.sensor_hits_.push_back(hit_pt_relative);
-                    hit_found = true;
-                    break;
-                }
-                else if (agent.draw_sensor_rays_) // drawing ray paths
-                {
-                    agent.pixels_until_hit_.push_back(pix);
-                }
-            }
-            if (!hit_found) // If no hit is found, instead of no return, we report the max range
-            {
-                Vec2d max_range_pt_relative;
-                float xTranslated       = end_pos_x - ray_start_x;
-                float yTranslated       = end_pos_y - ray_start_y;
-                max_range_pt_relative.x = xTranslated * cos(drv_rot_rad) - yTranslated * sin(drv_rot_rad);
-                max_range_pt_relative.y = xTranslated * sin(drv_rot_rad) + yTranslated * cos(drv_rot_rad);
-                agent.sensor_hits_.push_back(max_range_pt_relative);
-            }
-        }
-    }
-}
-
-bool Visualizer::checkAgentCollision(const raylib::Image &render_buffer, const Agent &agent)
-{
-    raylib::Vector2      agent_texture_coord{agent.pos_.x, kScreenHeight - agent.pos_.y};
-    const raylib::Color *pix_color =
-        &((raylib::Color *)render_buffer.data)[static_cast<int>(agent_texture_coord.y) * render_buffer.width +
-                                               static_cast<int>(agent_texture_coord.x)];
-
-    if (Visualizer::isBarrierPixel(*pix_color))
-    {
-        return true;
-    }
-    return false;
-}
-
-void Visualizer::drawSensorRays(std::vector<Pixel> &pixels_until_hit, raylib::Image &render_buffer)
-{
-
-    for (const auto &pix : pixels_until_hit)
-    {
-        render_buffer.DrawPixel(pix.x, pix.y, raylib::Color::DarkPurple());
-    }
-    pixels_until_hit.clear();
 }
 
 void Visualizer::drawTrackTitle(const std::string &track_name)
@@ -246,24 +174,6 @@ void Visualizer::close()
 void Visualizer::saveImage(const std::string &name)
 {
     TakeScreenshot(name.c_str());
-}
-
-bool Visualizer::isDrivableAreaPixel(const raylib::Color &pixel_color)
-{
-    if (pixel_color == kDrivableAreaCol)
-    {
-        return true;
-    }
-    return false;
-}
-
-bool Visualizer::isBarrierPixel(const raylib::Color &pixel_color)
-{
-    if ((pixel_color == kLeftBarrierCol) || (pixel_color == kRightBarrierCol))
-    {
-        return true;
-    }
-    return false;
 }
 
 void Visualizer::shadeAreaBetweenCurves(const std::vector<Vec2d> &curve_1,

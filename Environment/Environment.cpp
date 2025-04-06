@@ -7,10 +7,16 @@
 #include "Environment.h"
 #include "raylib-cpp.hpp"
 
-Environment::Environment(const std::string &race_track_path)
+Environment::Environment(const std::string &race_track_path, const std::vector<Agent *> &agents)
 {
     race_track_ = std::make_unique<RaceTrack>(race_track_path);
     visualizer_ = std::make_unique<env::Visualizer>();
+
+    // Initialize the collision checker with the framebuffer object ID
+    collision_checker_ = std::make_unique<CollisionChecker>(visualizer_->render_target_.texture.id, agents);
+
+    // Store pointers to the agents
+    agents_ = agents;
 }
 
 void Environment::setAgent(Agent *agent)
@@ -39,7 +45,7 @@ void Environment::step()
             agent->move();
             if (agent->standstill_timed_out_)
             {
-                agent->crashed_ = true;
+                // agent->crashed_ = true;
             }
         }
     }
@@ -86,31 +92,20 @@ void Environment::step()
 
     // -------- 3) Direct render buffer manipulation for sensors -------- //
     {
-        render_buffer_ = std::make_unique<raylib::Image>();
-        render_buffer_->Load(visualizer_->render_target_.texture);
         // We first check the collision before drawing any sensor or agents to avoid overlap
         // NOTE: Sensor update needs to happen before drawing multiple agents since we emulate parallel simulators here so agents
         // should NOT see each other's world.
+        collision_checker_->checkCollision();
+
+        visualizer_->activateDrawing(false);
         for (auto &agent : agents_)
         {
-            if (!agent->crashed_)
-            {
-                if (visualizer_->checkAgentCollision(*render_buffer_, *agent))
-                {
-                    agent->crashed_ = true;
-                }
-                else
-                {
-                    visualizer_->updateSensor(*agent, *render_buffer_);
-                }
-            }
+            visualizer_->drawAgent(*agent);
         }
-        for (auto &agent : agents_)
-        {
-            visualizer_->drawAgent(*agent, *render_buffer_);
-        }
-        UpdateTexture(visualizer_->render_target_.texture, render_buffer_->data);
     }
+
+    visualizer_->disableDrawing();
+
     // -------- 4) Render the final texture -------- //
     visualizer_->render();
 }
