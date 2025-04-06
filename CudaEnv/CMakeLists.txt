@@ -50,7 +50,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 
 target_link_libraries(${PROJECT_NAME} 
     raylib 
-    ${CUDA_LIBRARIES} 
+    ${CUDA_LIBRARIES}
     GL 
     ${GLEW_LIBRARIES} 
     Environment
