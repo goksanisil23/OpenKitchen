@@ -24,31 +24,23 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Environment env(argv[1]);
-
-    std::vector<rl::DDPGAgent> agents;
-    agents.reserve(kNumAgents);
-    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
-    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    std::vector<std::unique_ptr<rl::DDPGAgent>> agents;
     for (int16_t i{0}; i < kNumAgents; i++)
     {
-        agents.emplace_back(rl::DDPGAgent({start_pos_x, start_pos_y},
-                                          env.race_track_->headings_[RaceTrack::kStartingIdx],
-                                          i,
-                                          env.race_track_->findNearestTrackIndexBruteForce({start_pos_x, start_pos_y}),
-                                          static_cast<int64_t>(env.race_track_->track_data_points_.x_m.size())));
-        env.setAgent(&agents.back());
+        agents.push_back(std::make_unique<rl::DDPGAgent>(Vec2d{0, 0}, 0, i));
+    }
+
+    Environment env(argv[1], createBaseAgentPtrs(agents));
+
+    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    for (auto &agent : agents)
+    {
+        agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
     }
 
     uint32_t episode_idx{0};
     int32_t  reset_idx{RaceTrack::kStartingIdx};
-
-    env.visualizer_->user_draw_callback_ = [&episode_idx, &agents]()
-    {
-        // char buffer[30];
-        // snprintf(buffer, sizeof(buffer), "Episode: %d eps: %.3f", episode_idx, agents.front().epsilon_);
-        // DrawText(buffer, kScreenWidth - 250, 40, 20, YELLOW);
-    };
 
     bool all_done{false};
     while (true)
@@ -58,12 +50,9 @@ int main(int argc, char **argv)
 
         for (auto &agent : agents)
         {
-            agent.reset(
-                {env.race_track_->track_data_points_.x_m[reset_idx],
-                 env.race_track_->track_data_points_.y_m[reset_idx]},
-                env.race_track_->headings_[reset_idx],
-                env.race_track_->findNearestTrackIndexBruteForce({env.race_track_->track_data_points_.x_m[reset_idx],
-                                                                  env.race_track_->track_data_points_.y_m[reset_idx]}));
+            agent->reset({env.race_track_->track_data_points_.x_m[reset_idx],
+                          env.race_track_->track_data_points_.y_m[reset_idx]},
+                         env.race_track_->headings_[reset_idx]);
         }
 
         // need to get an initial observation for the intial action, after reset
@@ -71,16 +60,16 @@ int main(int argc, char **argv)
 
         for (auto &agent : agents)
         {
-            agent.current_state_tensor_ = agent.stateToTensor();
+            agent->current_state_tensor_ = agent->stateToTensor();
         }
 
         while (!all_done)
         {
             for (auto &agent : agents)
             {
-                agent.replay_buffer_.states.push(agent.getCurrentState());
-                agent.updateAction();
-                agent.replay_buffer_.actions.push(agent.getCurrentAction());
+                agent->replay_buffer_.states.push(agent->getCurrentState());
+                agent->updateAction();
+                agent->replay_buffer_.actions.push(agent->getCurrentAction());
             }
 
             env.step();
@@ -88,19 +77,19 @@ int main(int argc, char **argv)
             all_done = true;
             for (auto &agent : agents)
             {
-                agent.replay_buffer_.next_states.push(agent.getCurrentState());
-                agent.replay_buffer_.rewards.push(1.0F);
+                agent->replay_buffer_.next_states.push(agent->getCurrentState());
+                agent->replay_buffer_.rewards.push(1.0F);
 
-                agent.current_state_tensor_ = agent.stateToTensor();
+                agent->current_state_tensor_ = agent->stateToTensor();
 
-                if (!agent.crashed_)
+                if (!agent->crashed_)
                 {
                     all_done = false;
-                    agent.replay_buffer_.dones.push(0.0F);
+                    agent->replay_buffer_.dones.push(0.0F);
                 }
                 else
                 {
-                    agent.replay_buffer_.dones.push(1.0F);
+                    agent->replay_buffer_.dones.push(1.0F);
                 }
             }
         }
@@ -108,10 +97,10 @@ int main(int argc, char **argv)
         // Update the Actor-Critic networks with the samples from the replay buffer at the end of each episode
         for (auto &agent : agents)
         {
-            agent.updateDDPG();
+            agent->updateDDPG();
         }
         episode_idx++;
-        reset_idx = pickResetPosition(env, &agents.front());
+        reset_idx = pickResetPosition(env, (agents.front()).get());
     }
 
     return 0;

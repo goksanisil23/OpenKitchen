@@ -150,7 +150,7 @@ class DDPGAgent : public Agent
         }
     }
 
-    void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
+    void reset(const Vec2d &reset_pos, const float reset_rot)
     {
         Agent::reset(reset_pos, reset_rot);
 
