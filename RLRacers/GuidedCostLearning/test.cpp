@@ -14,23 +14,6 @@
 namespace
 {
 
-std::vector<std::string> getRaceTrackFiles(const std::string &folder_path)
-{
-    namespace fs = std::filesystem;
-
-    std::vector<std::string> track_files;
-    for (const auto &entry : fs::directory_iterator(folder_path))
-    {
-        if (entry.path().extension() == ".csv")
-        {
-            track_files.push_back(entry.path().string());
-        }
-    }
-    return track_files;
-}
-
-} // namespace
-
 class GCLAgent : public Agent
 {
   public:
@@ -60,13 +43,30 @@ class GCLAgent : public Agent
         current_action_.steering_delta = 0.F;
     }
 
-    void reset(const Vec2d &reset_pos, const float reset_rot, const size_t track_reset_idx)
+    void reset(const Vec2d &reset_pos, const float reset_rot)
     {
         Agent::reset(reset_pos, reset_rot);
 
         sensor_hits_ = std::vector<Vec2d>(sensor_ray_angles_.size());
     }
 };
+
+std::vector<std::string> getRaceTrackFiles(const std::string &folder_path)
+{
+    namespace fs = std::filesystem;
+
+    std::vector<std::string> track_files;
+    for (const auto &entry : fs::directory_iterator(folder_path))
+    {
+        if (entry.path().extension() == ".csv")
+        {
+            track_files.push_back(entry.path().string());
+        }
+    }
+    return track_files;
+}
+
+} // namespace
 
 int32_t pickResetPosition(const Environment &env)
 {
@@ -84,21 +84,16 @@ int main(int argc, char **argv)
     std::vector<std::unique_ptr<GCLAgent>> agents;
     agents.push_back(std::make_unique<GCLAgent>(Vec2d{0, 0}, 0, 0));
     agents.push_back(std::make_unique<GCLAgent>(Vec2d{0, 0}, 0, 1));
-    std::vector<Agent *> agent_ptrs;
-    for (const auto &agent_ptr : agents)
-    {
-        agent_ptrs.push_back(agent_ptr.get());
-    }
 
     for (size_t iter = 0; iter < num_iterations; iter++)
     {
         // 2) Collect N samples with the current policy from the environment (Rollout)
         const size_t race_track_id_to_use{iter % race_tracks.size()};
-        Environment  env(race_tracks[race_track_id_to_use], agent_ptrs);
+        Environment  env(race_tracks[race_track_id_to_use], createBaseAgentPtrs(agents));
         const float  start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
         const float  start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
-        agents[0]->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
-        agents[1]->reset({start_pos_x, start_pos_y}, 180.F - env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
+        agents[0]->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
+        agents[1]->reset({start_pos_x, start_pos_y}, 180.F - env.race_track_->headings_[RaceTrack::kStartingIdx]);
         int32_t reset_idx{RaceTrack::kStartingIdx};
         auto    t0    = std::chrono::high_resolution_clock::now();
         int     iters = 0;
@@ -111,10 +106,7 @@ int main(int argc, char **argv)
                     reset_idx = pickResetPosition(env);
                     agent->reset({env.race_track_->track_data_points_.x_m[reset_idx],
                                   env.race_track_->track_data_points_.y_m[reset_idx]},
-                                 env.race_track_->headings_[reset_idx],
-                                 env.race_track_->findNearestTrackIndexBruteForce(
-                                     {env.race_track_->track_data_points_.x_m[reset_idx],
-                                      env.race_track_->track_data_points_.y_m[reset_idx]}));
+                                 env.race_track_->headings_[reset_idx]);
                 }
             }
 

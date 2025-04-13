@@ -31,7 +31,6 @@ ${ENVIRONMENT_INCLUDE_DIR}
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC ${COMPILER_FLAGS})
 
 ######## TEST ########
-set(CMAKE_BUILD_TYPE Debug)
 add_executable(test test.cpp)
 target_include_directories(test SYSTEM PRIVATE 
     ${RAYLIB_CPP_INCLUDE_DIR}

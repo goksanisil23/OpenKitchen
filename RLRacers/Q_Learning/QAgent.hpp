@@ -44,11 +44,11 @@ class QLearnAgent : public Agent
     QLearnAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    QLearnAgent(const raylib::Vector2 start_pos,
-                const float           start_rot,
-                const int16_t         id,
-                const size_t          start_idx     = 0,
-                const size_t          track_idx_len = 0)
+    QLearnAgent(const Vec2d   start_pos,
+                const float   start_rot,
+                const int16_t id,
+                const size_t  start_idx     = 0,
+                const size_t  track_idx_len = 0)
         : Agent(start_pos, start_rot, id), prev_track_idx_{static_cast<int64_t>(start_idx)},
           track_idx_len_{static_cast<int64_t>(track_idx_len)}
     {

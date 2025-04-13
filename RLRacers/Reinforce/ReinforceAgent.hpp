@@ -34,11 +34,11 @@ class ReinforceAgent : public Agent
     ReinforceAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    ReinforceAgent(const raylib::Vector2 start_pos,
-                   const float           start_rot,
-                   const int16_t         id,
-                   const size_t          start_idx     = 0,
-                   const size_t          track_idx_len = 0)
+    ReinforceAgent(const Vec2d   start_pos,
+                   const float   start_rot,
+                   const int16_t id,
+                   const size_t  start_idx     = 0,
+                   const size_t  track_idx_len = 0)
         : Agent(start_pos, start_rot, id), optimizer_{torch::optim::Adam(policy_.parameters(), kLearningRate)}
     {
 

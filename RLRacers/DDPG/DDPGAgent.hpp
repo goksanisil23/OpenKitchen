@@ -38,11 +38,11 @@ class DDPGAgent : public Agent
     DDPGAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    DDPGAgent(const raylib::Vector2 start_pos,
-              const float           start_rot,
-              const int16_t         id,
-              const size_t          start_idx     = 0,
-              const size_t          track_idx_len = 0)
+    DDPGAgent(const Vec2d   start_pos,
+              const float   start_rot,
+              const int16_t id,
+              const size_t  start_idx     = 0,
+              const size_t  track_idx_len = 0)
         : Agent(start_pos, start_rot, id),
           actor_optimizer_{torch::optim::Adam(actor_.parameters(), kActorLearningRate)},
           critic_optimizer_{torch::optim::Adam(critic_.parameters(), kCriticLearningRate)}
