@@ -9,11 +9,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../Paths.cmake)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../Environment ${CMAKE_CURRENT_BINARY_DIR}/Environment)
 set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../)
 
-################## Q-learning ################## 
+################## Field Navigators ################## 
 set(FIELD_NAV_SRCS
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Agent.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Visualizer.cpp
-    ${ENVIRONMENT_INCLUDE_DIR}/Environment/Environment.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/PotentialFieldAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VFHAgent.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
@@ -28,7 +25,7 @@ target_include_directories(field_navigator SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(field_navigator pthread raylib dl rt)
+target_link_libraries(field_navigator pthread raylib dl rt Environment)
 target_link_directories(field_navigator PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(field_navigator PUBLIC

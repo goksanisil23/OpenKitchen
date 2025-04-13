@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(collect_data_racetrack)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+find_package(CUDA REQUIRED)
 set(COMPILER_FLAGS -Wall -std=c++17 -g -O2)
 
 ################# Common Environment Libraries #################
@@ -24,7 +24,7 @@ target_include_directories(collect_data_racetrack SYSTEM PRIVATE
     ${EIGEN_DIR}
 )
 
-target_link_libraries(collect_data_racetrack raylib pthread dl rt Environment)
+target_link_libraries(collect_data_racetrack raylib pthread dl rt Environment ${CUDA_LIBRARIES})
 target_link_directories(collect_data_racetrack PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(collect_data_racetrack PUBLIC

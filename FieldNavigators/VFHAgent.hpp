@@ -22,11 +22,11 @@ class VFHAgent : public Agent
     VFHAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    VFHAgent(const raylib::Vector2 start_pos,
-             const float           start_rot,
-             const int16_t         id,
-             const size_t          start_idx     = 0,
-             const size_t          track_idx_len = 0)
+    VFHAgent(const Vec2d   start_pos,
+             const float   start_rot,
+             const int16_t id,
+             const size_t  start_idx     = 0,
+             const size_t  track_idx_len = 0)
         : Agent(start_pos, start_rot, id)
     {
         // Re-configure the sensor ray angles
@@ -44,7 +44,7 @@ class VFHAgent : public Agent
         sector_width_ = fov_ / num_sectors_;
     }
 
-    void setGoalPoint(const raylib::Vector2 goal)
+    void setGoalPoint(const Vec2d goal)
     {
         goal_point_ = goal;
     }
@@ -117,7 +117,7 @@ class VFHAgent : public Agent
         current_action_.steering_delta = best_sector_angle;
     }
 
-    void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
+    void reset(const Vec2d &reset_pos, const float reset_rot)
     {
         Agent::reset(reset_pos, reset_rot);
 
@@ -125,7 +125,7 @@ class VFHAgent : public Agent
     }
 
   private:
-    raylib::Vector2 goal_point_;
+    Vec2d goal_point_;
 
     int32_t num_sectors_;
     float   sector_width_{};
