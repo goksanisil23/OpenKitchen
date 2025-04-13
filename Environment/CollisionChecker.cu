@@ -142,18 +142,18 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
 class CollisionChecker::Impl
 {
   public:
-    Impl(const unsigned int framebuffer_obj_id, const std::vector<Agent *> agents)
+    Impl(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents)
     {
         // Register OpenGL texture to CUDA
         cudaGraphicsGLRegisterImage(
             &cuda_resource_, framebuffer_obj_id, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
         cudaStreamCreate(&stream_);
-        agents_ = agents;
 
-        cudaMallocHost(&h_rays_, agents[0]->sensor_ray_angles_.size() * agents.size() * sizeof(Ray_));
-        cudaMalloc(&d_rays_, agents[0]->sensor_ray_angles_.size() * agents.size() * sizeof(Ray_));
-
+        agents_         = agents;
         num_total_rays_ = agents[0]->sensor_ray_angles_.size() * agents.size();
+
+        cudaMallocHost(&h_rays_, num_total_rays_ * sizeof(Ray_));
+        cudaMalloc(&d_rays_, num_total_rays_ * sizeof(Ray_));
     }
 
     ~Impl()
@@ -191,7 +191,7 @@ class CollisionChecker::Impl
         for (size_t agent_idx = 0; agent_idx < agents_.size(); ++agent_idx)
         {
             const size_t num_rays = agents_[agent_idx]->sensor_ray_angles_.size();
-            Agent       *agent    = agents_[agent_idx];
+            auto         agent    = agents_[agent_idx];
             for (size_t i = 0; i < num_rays; ++i)
             {
                 h_rays_[agent_idx * num_rays + i].x =
@@ -216,7 +216,7 @@ class CollisionChecker::Impl
         for (size_t agent_idx = 0; agent_idx < agents_.size(); ++agent_idx)
         {
             const size_t num_rays      = agents_[agent_idx]->sensor_ray_angles_.size();
-            Agent       *agent         = agents_[agent_idx];
+            auto         agent         = agents_[agent_idx];
             float        agent_rot_rad = agent->rot_ * kDeg2Rad;
             agent->sensor_hits_.clear();
             float min_dist2{Agent::kSensorRange * Agent::kSensorRange};
@@ -255,7 +255,7 @@ class CollisionChecker::Impl
     cudaStream_t           stream_;
 };
 
-CollisionChecker::CollisionChecker(const unsigned int framebuffer_obj_id, const std::vector<Agent *> agents)
+CollisionChecker::CollisionChecker(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents)
     : impl_(std::make_unique<Impl>(framebuffer_obj_id, agents))
 {
 }

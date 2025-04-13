@@ -87,3 +87,15 @@ class Agent
 
     MovementMode movement_mode_{MovementMode::VELOCITY};
 };
+
+template <typename TDerivedAgent>
+inline std::vector<Agent *> createBaseAgentPtrs(const std::vector<std::unique_ptr<TDerivedAgent>> &derived_agents)
+{
+    std::vector<Agent *> base_agent_ptrs;
+    base_agent_ptrs.reserve(derived_agents.size());
+    for (const auto &agent : derived_agents)
+    {
+        base_agent_ptrs.push_back(agent.get());
+    }
+    return base_agent_ptrs;
+}

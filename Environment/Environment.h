@@ -24,8 +24,6 @@ class Environment
 
     Environment(const std::string &race_track_path, const std::vector<Agent *> &agents);
 
-    void setAgent(Agent *agent);
-
     void drawSensorRanges(const std::vector<Vec2d> &sensor_hits);
 
     // Iterates 1 step in the environment given the current action and returns the next state of the agent

@@ -38,9 +38,29 @@ struct Vec2d
         return (x - other.x) * (x - other.x) + (y - other.y) * (y - other.y);
     }
 
+    float length() const
+    {
+        return std::sqrt(x * x + y * y);
+    }
+
     Vec2d operator+(const Vec2d &other) const
     {
         return {x + other.x, y + other.y};
+    }
+
+    Vec2d operator-(const Vec2d &other) const
+    {
+        return {x - other.x, y - other.y};
+    }
+
+    Vec2d operator*(const float scalar) const
+    {
+        return {x * scalar, y * scalar};
+    }
+
+    Vec2d operator/(const Vec2d &other) const
+    {
+        return {x / other.x, y / other.y};
     }
 
     Vec2d operator/(const float scalar) const

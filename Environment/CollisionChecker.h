@@ -7,7 +7,7 @@
 class CollisionChecker
 {
   public:
-    CollisionChecker(const unsigned int framebuffer_obj_id, const std::vector<Agent *> agents);
+    CollisionChecker(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents);
     ~CollisionChecker();
 
     // Returns true if a collision is detected.

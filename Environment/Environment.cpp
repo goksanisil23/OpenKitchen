@@ -19,11 +19,6 @@ Environment::Environment(const std::string &race_track_path, const std::vector<A
     agents_ = agents;
 }
 
-void Environment::setAgent(Agent *agent)
-{
-    agents_.push_back(agent);
-}
-
 void Environment::drawSensorRanges(const std::vector<Vec2d> &sensor_hits)
 {
     std::string range_string{""};
