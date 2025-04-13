@@ -6,8 +6,8 @@ struct RewardNet : torch::nn::Module
 
     RewardNet()
     {
-        // 16 = 14 (state) + 2 (action)
-        net = torch::nn::Sequential(torch::nn::Linear(16, 64),
+        // 9 = 7 (state) + 2 (action)
+        net = torch::nn::Sequential(torch::nn::Linear(9, 64),
                                     torch::nn::ReLU(),
                                     torch::nn::Linear(64, 64),
                                     torch::nn::ReLU(),
@@ -31,7 +31,7 @@ struct PolicyNet : torch::nn::Module
 
     PolicyNet()
     {
-        net = torch::nn::Sequential(torch::nn::Linear(14, 64),
+        net = torch::nn::Sequential(torch::nn::Linear(7, 64),
                                     torch::nn::ReLU(),
                                     torch::nn::Linear(64, 64),
                                     torch::nn::ReLU(),

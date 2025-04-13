@@ -24,8 +24,8 @@ target_link_libraries(${CMAKE_PROJECT_NAME} "${TORCH_LIBRARIES}")
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC
-${CMAKE_CURRENT_SOURCE_DIR}
-${ENVIRONMENT_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ENVIRONMENT_INCLUDE_DIR}
 )
 
 target_compile_options(${CMAKE_PROJECT_NAME} PUBLIC ${COMPILER_FLAGS})
@@ -42,8 +42,8 @@ target_link_libraries(test pthread raylib dl rt Environment)
 target_link_directories(test PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(test PUBLIC
-${CMAKE_CURRENT_SOURCE_DIR}
-${ENVIRONMENT_INCLUDE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${ENVIRONMENT_INCLUDE_DIR}
 )
 
 set(COMPILER_FLAGS_TEST -Wall -std=c++17 -g -fno-omit-frame-pointer)
