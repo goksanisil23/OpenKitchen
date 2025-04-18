@@ -1,0 +1,3 @@
+train.py relies on the data collected from the FieldNavigators/collect_data application, which goes through all race tracks to generate 2d-laser readings and throttle/steering actions in a txt file.
+
+Once the training is finished, the model can be "traced" via trace_model.py that converts it a more optimized version that is loadable by torch libraries in c++. This is utilized in infer_torch_traced_main.cpp
