@@ -47,8 +47,7 @@ std::vector<float> denormalizeControls(const std::vector<float> &norm)
 class TracedInferAgent : public Agent
 {
   public:
-    TracedInferAgent(const raylib::Vector2 start_pos, const float start_rot, const int16_t id)
-        : Agent(start_pos, start_rot, id)
+    TracedInferAgent(const Vec2d start_pos, const float start_rot, const int16_t id) : Agent(start_pos, start_rot, id)
     {
         // Setup sensor
         sensor_ray_angles_.clear();

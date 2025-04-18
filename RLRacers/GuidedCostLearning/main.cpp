@@ -177,7 +177,7 @@ int main(int argc, char **argv)
 
         // Network outputs reward estimation per each sample, so we take a mean of N samples
         auto const expert_reward = agent->reward_net_.forward(expert_states, expert_actions).mean();
-        auto const policy_reward = agent->reward_net_.forward(policy_states.detach(), policy_actions.detach()).mean();
+        auto const policy_reward = agent->reward_net_.forward(policy_states, policy_actions).mean();
 
         // Purpose is to maximize differentiability power of the reward network by boosting expert rewards
         // and penalizing noob-policy rewards

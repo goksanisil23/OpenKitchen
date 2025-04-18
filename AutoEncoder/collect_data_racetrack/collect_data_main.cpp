@@ -22,7 +22,7 @@ Pointclouds will be saved under point_clouds folder
 class DataCollectorAgent : public Agent
 {
   public:
-    DataCollectorAgent(raylib::Vector2 start_pos, float start_rot, int16_t id) : Agent(start_pos, start_rot, id)
+    DataCollectorAgent(const Vec2d start_pos, float start_rot, int16_t id) : Agent(start_pos, start_rot, id)
     {
 
         if (!std::filesystem::exists(directory_))

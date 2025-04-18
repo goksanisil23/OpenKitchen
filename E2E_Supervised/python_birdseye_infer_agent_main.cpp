@@ -24,7 +24,7 @@ class PythonInferAgent : public Agent
     static constexpr size_t kSharedMemSizeBytesMeasurement{1600 * 1400 * 4};
     static constexpr size_t kSharedMemSizeBytesActions{4 * 2};
 
-    PythonInferAgent(const raylib::Vector2 start_pos, const float start_rot, const int16_t id)
+    PythonInferAgent(const Vec2d start_pos, const float start_rot, const int16_t id)
         : Agent(start_pos, start_rot, id), measurement_buffer_(kSharedMemSizeBytesMeasurement, 0)
     {
         // Setup shared memory and semaphores

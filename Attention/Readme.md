@@ -30,3 +30,17 @@ In diagram below,
 - our input with 5 sequential elements (X1 ... X5) is split into 4 pieces.
 - An element in each input produces a key-value-query
 <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/Attention/resources/multi_head_self_attention.svg" width=52% height=30%>
+
+
+
+## Vision Transformer Intuition
+General architecture can be thought as: Communication + Computation
+Assume 128x128 image, chunked into smaller patches of (16x16) --> 64 patches
+- Each of these 64 patches are considered to be a separate input to the transformer.
+    - 64 parallel processing units each of which processing a patch.
+    - Attention in each processing unit looks at its own patch and queries each of the remaining 63 processing units to ask for relevant info.
+
+
+
+Resource:
+https://towardsdatascience.com/efficient-image-segmentation-using-pytorch-part-4-6c86da083432

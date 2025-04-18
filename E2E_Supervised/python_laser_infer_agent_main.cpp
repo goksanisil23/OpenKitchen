@@ -21,8 +21,7 @@
 class PythonInferAgent : public Agent
 {
   public:
-    PythonInferAgent(const raylib::Vector2 start_pos, const float start_rot, const int16_t id)
-        : Agent(start_pos, start_rot, id)
+    PythonInferAgent(const Vec2d start_pos, const float start_rot, const int16_t id) : Agent(start_pos, start_rot, id)
     {
         // Setup shared memory and semaphores
         int shm_fd = shm_open("myshm", O_CREAT | O_RDWR, 0666);

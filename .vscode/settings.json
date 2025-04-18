@@ -1,6 +1,7 @@
 {
         "files.associations": {
                 "*.py": "python",
+                "*.cu": "cpp",
                 "cctype": "cpp",
                 "clocale": "cpp",
                 "cmath": "cpp",

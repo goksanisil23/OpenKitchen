@@ -29,8 +29,7 @@ class GeneticAgent : public Agent
     }
 
     // Used when all agents are created initially, with randomized weights
-    GeneticAgent(raylib::Vector2 start_pos, float start_rot, int16_t id)
-        : Agent(start_pos, start_rot, id), nn_{Network()}
+    GeneticAgent(const Vec2d start_pos, float start_rot, int16_t id) : Agent(start_pos, start_rot, id), nn_{Network()}
     {
         movement_mode_ = MovementMode::ACCELERATION;
     }

@@ -22,3 +22,5 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 ##### [DDPG with 2D Raycast](/RLRacers/DDPG) :white_check_mark:
 
 ##### [End-to-end CNN with Birdseye View](/E2E_Supervised) :white_check_mark:
+
+##### [Transformer: 2D Raycast -> Action](/Transformer) :white_check_mark:
