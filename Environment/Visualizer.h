@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <memory>
 #include <sstream>
+#include <functional>
 
 #include "Agent.h"
 #include "IpcMsgs.h"
