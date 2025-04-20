@@ -206,7 +206,7 @@ class CollisionChecker::Impl
         cudaMemcpy(d_rays_, h_rays_, num_total_rays_ * sizeof(Ray_), cudaMemcpyHostToDevice);
 
         constexpr dim3 threadsPerBlock(32);
-        const dim3     blocksPerGrid((static_cast<int>(agents_.size()) + threadsPerBlock.x - 1) / threadsPerBlock.x);
+        const dim3     blocksPerGrid((static_cast<int>(num_total_rays_) + threadsPerBlock.x - 1) / threadsPerBlock.x);
 
         castRaysKernel<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
             surface, d_rays_, static_cast<int>(num_total_rays_));
@@ -228,10 +228,16 @@ class CollisionChecker::Impl
                 float yTranslated = h_rays_[agent_idx * num_rays + i].hit_y - h_rays_[agent_idx * num_rays + i].y;
                 hit_pt_relative.x = xTranslated * cos(agent_rot_rad) - yTranslated * sin(agent_rot_rad);
                 hit_pt_relative.y = xTranslated * sin(agent_rot_rad) + yTranslated * cos(agent_rot_rad);
-                agent->sensor_hits_.push_back(hit_pt_relative);
-                if (agent->sensor_hits_.back().norm() < min_dist2)
+                if (hit_pt_relative.squaredNorm() > (Agent::kSensorRange * Agent::kSensorRange))
                 {
-                    min_dist2 = agent->sensor_hits_.back().squaredNorm();
+                    // Saturate to sensor range if exceeds due to pixel rounding
+                    hit_pt_relative.x = Agent::kSensorRange * cos(agents_[agent_idx]->sensor_ray_angles_[i]);
+                    hit_pt_relative.y = Agent::kSensorRange * sin(agents_[agent_idx]->sensor_ray_angles_[i]);
+                }
+                agent->sensor_hits_.push_back(hit_pt_relative);
+                if (hit_pt_relative.squaredNorm() < min_dist2)
+                {
+                    min_dist2 = hit_pt_relative.squaredNorm();
                 }
             }
             constexpr float kCollisionThresholdDistSquared = 2.0f;
