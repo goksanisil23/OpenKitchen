@@ -29,6 +29,10 @@ class Environment
     // Iterates 1 step in the environment given the current action and returns the next state of the agent
     void step();
 
+    int32_t pickRandomResetTrackIdx() const;
+
+    void resetAgentAtRandomPoint(Agent *agent);
+
   public:
     std::unique_ptr<RaceTrack>        race_track_;
     std::unique_ptr<env::Visualizer>  visualizer_;

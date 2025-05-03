@@ -29,6 +29,20 @@ void Environment::drawSensorRanges(const std::vector<Vec2d> &sensor_hits)
     DrawText(range_string.c_str(), kScreenWidth - 400, 100, 15, WHITE);
 }
 
+int32_t Environment::pickRandomResetTrackIdx() const
+{
+    return GetRandomValue(0, static_cast<int32_t>(race_track_->track_data_points_.x_m.size()) - 1);
+}
+
+void Environment::resetAgentAtRandomPoint(Agent *agent)
+{
+    int32_t     reset_idx{pickRandomResetTrackIdx()};
+    const float start_pos_x{race_track_->track_data_points_.x_m[reset_idx]};
+    const float start_pos_y{race_track_->track_data_points_.y_m[reset_idx]};
+    // Base Agent reset() is marked virtual, hence we expect derived Agent's reset to be called here
+    agent->reset({start_pos_x, start_pos_y}, race_track_->headings_[reset_idx]);
+}
+
 // Iterates 1 step in the environment given the current action and returns the next state of the agent
 void Environment::step()
 {
@@ -40,7 +54,7 @@ void Environment::step()
             agent->move();
             if (agent->standstill_timed_out_)
             {
-                // agent->crashed_ = true;
+                agent->crashed_ = true;
             }
         }
     }

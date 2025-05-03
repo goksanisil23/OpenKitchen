@@ -11,11 +11,6 @@
 
 constexpr int16_t kNumAgents{1};
 
-int32_t pickResetPosition(const Environment &env, const Agent *agent)
-{
-    return GetRandomValue(0, static_cast<int32_t>(env.race_track_->track_data_points_.x_m.size()) - 1);
-}
-
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -24,25 +19,21 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Environment env(argv[1]);
-
-    std::vector<rl::ReinforceAgent> agents;
-    agents.reserve(kNumAgents);
-    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
-    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    std::vector<std::unique_ptr<rl::ReinforceAgent>> agents;
     for (int16_t i{0}; i < kNumAgents; i++)
     {
-        agents.emplace_back(
-            rl::ReinforceAgent({start_pos_x, start_pos_y},
-                               env.race_track_->headings_[RaceTrack::kStartingIdx],
-                               i,
-                               env.race_track_->findNearestTrackIndexBruteForce({start_pos_x, start_pos_y}),
-                               static_cast<int64_t>(env.race_track_->track_data_points_.x_m.size())));
-        env.setAgent(&agents.back());
+        agents.push_back(std::make_unique<rl::ReinforceAgent>(Vec2d{0, 0}, 0, i));
+    }
+    Environment env(argv[1], createBaseAgentPtrs(agents));
+
+    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    for (auto &agent : agents)
+    {
+        agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
     }
 
     uint32_t episode_idx{0};
-    int32_t  reset_idx{RaceTrack::kStartingIdx};
 
     env.visualizer_->user_draw_callback_ = [&episode_idx, &agents]()
     {
@@ -57,39 +48,34 @@ int main(int argc, char **argv)
         std::cout << "------------ EPISODE " << episode_idx << " DONE ---------------" << std::endl;
         all_done = false;
 
-        for (auto &q_agent : agents)
+        for (auto &agent : agents)
         {
-            q_agent.reset(
-                {env.race_track_->track_data_points_.x_m[reset_idx],
-                 env.race_track_->track_data_points_.y_m[reset_idx]},
-                env.race_track_->headings_[reset_idx],
-                env.race_track_->findNearestTrackIndexBruteForce({env.race_track_->track_data_points_.x_m[reset_idx],
-                                                                  env.race_track_->track_data_points_.y_m[reset_idx]}));
+            env.resetAgentAtRandomPoint(agent.get());
         }
 
         // need to get an initial observation for the intial action, after reset
         env.step();
 
-        for (auto &q_agent : agents)
+        for (auto &agent : agents)
         {
-            q_agent.current_state_tensor_ = q_agent.stateToTensor();
+            agent->current_state_tensor_ = agent->stateToTensor();
         }
 
         while (!all_done)
         {
-            for (auto &q_agent : agents)
+            for (auto &agent : agents)
             {
-                q_agent.updateAction();
+                agent->updateAction();
             }
 
             env.step();
 
             all_done = true;
-            for (auto &q_agent : agents)
+            for (auto &agent : agents)
             {
-                q_agent.current_state_tensor_ = q_agent.stateToTensor();
-                q_agent.policy_.rewards.push_back(1.0F);
-                if (!q_agent.crashed_)
+                agent->current_state_tensor_ = agent->stateToTensor();
+                agent->policy_.rewards.push_back(1.0F);
+                if (!agent->crashed_)
                 {
                     all_done = false;
                 }
@@ -98,10 +84,9 @@ int main(int argc, char **argv)
 
         for (auto &agent : agents)
         {
-            agent.updatePolicy();
+            agent->updatePolicy();
         }
         episode_idx++;
-        reset_idx = pickResetPosition(env, &agents.front());
     }
 
     return 0;
