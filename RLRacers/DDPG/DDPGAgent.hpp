@@ -17,7 +17,6 @@
 #include "ReplayBuffer.hpp"
 
 #include "Environment/Agent.h"
-#include "Environment/IpcMsgs.h"
 #include "Environment/Typedefs.h"
 #include "Environment/Utils.h"
 
@@ -107,7 +106,7 @@ class DDPGAgent : public Agent
 
     void updateDDPG()
     {
-        static constexpr int16_t kBatchSize{100};
+        static constexpr int16_t kBatchSize{250};
 
         std::cout << "Replay buffer size: " << replay_buffer_.states.size() << std::endl;
         for (size_t iter{0}; iter < num_update_steps_; iter++)
@@ -184,7 +183,7 @@ class DDPGAgent : public Agent
     torch::optim::Adam actor_optimizer_;
     torch::optim::Adam critic_optimizer_;
 
-    size_t num_update_steps_{200};
+    size_t num_update_steps_{50};
 
     ReplayBufferDDPG replay_buffer_; // specify state and action dimensions
 };
