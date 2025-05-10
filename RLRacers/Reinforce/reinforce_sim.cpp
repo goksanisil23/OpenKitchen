@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 
         for (auto &agent : agents)
         {
-            env.resetAgentAtRandomPoint(agent.get());
+            env.resetAgent(agent.get());
         }
 
         // need to get an initial observation for the intial action, after reset

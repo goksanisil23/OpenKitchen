@@ -31,7 +31,11 @@ class Environment
 
     int32_t pickRandomResetTrackIdx() const;
 
-    void resetAgentAtRandomPoint(Agent *agent);
+    // If pick_random_point is true, pick a random point on the track to reset the agent
+    // else reset the agent to the starting point of the track
+    void resetAgent(Agent *agent, const bool pick_random_point = true);
+
+    bool isEnterPressed() const;
 
   public:
     std::unique_ptr<RaceTrack>        race_track_;

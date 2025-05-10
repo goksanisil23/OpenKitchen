@@ -4,6 +4,10 @@
 #include <string>
 #include <vector>
 
+#include <fcntl.h>
+#include <termios.h>
+#include <unistd.h>
+
 #include "Environment.h"
 #include "raylib-cpp.hpp"
 
@@ -34,9 +38,9 @@ int32_t Environment::pickRandomResetTrackIdx() const
     return GetRandomValue(0, static_cast<int32_t>(race_track_->track_data_points_.x_m.size()) - 1);
 }
 
-void Environment::resetAgentAtRandomPoint(Agent *agent)
+void Environment::resetAgent(Agent *agent, const bool pick_random_point)
 {
-    int32_t     reset_idx{pickRandomResetTrackIdx()};
+    int32_t     reset_idx = pick_random_point ? pickRandomResetTrackIdx() : RaceTrack::kStartingIdx;
     const float start_pos_x{race_track_->track_data_points_.x_m[reset_idx]};
     const float start_pos_y{race_track_->track_data_points_.y_m[reset_idx]};
     // Base Agent reset() is marked virtual, hence we expect derived Agent's reset to be called here
@@ -117,4 +121,29 @@ void Environment::step()
 
     // -------- 4) Render the final texture -------- //
     visualizer_->render();
+}
+
+bool Environment::isEnterPressed() const
+{
+    struct termios oldt, newt;
+    char           ch;
+    tcgetattr(STDIN_FILENO, &oldt); // Get current terminal settings
+    newt = oldt;
+    newt.c_lflag &= ~ICANON; // Disable canonical mode
+    newt.c_lflag &= ~ECHO;   // Disable echoing
+    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+
+    // Set the terminal to non-blocking mode
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+    if (read(STDIN_FILENO, &ch, 1) == 1)
+    {
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restore terminal settings
+        return ch == '\n';
+    }
+    else
+    {
+        tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restore terminal settings
+    }
+    return false; // No key was pressed
 }
