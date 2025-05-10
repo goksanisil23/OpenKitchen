@@ -1,0 +1,2 @@
+- high learning rate works better in "easier" tracks that are wider and starting with straight.
+- high variance at the beginning is really needed for sufficient exploration, otherwise it doesnt learn to even move straight
