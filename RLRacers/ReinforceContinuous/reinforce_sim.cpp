@@ -55,8 +55,7 @@ int main(int argc, char **argv)
         env.step();
 
         agent->current_state_tensor_ = agent->stateToTensor();
-
-        Vec2d prev_pos = agent->pos_;
+        agent->prev_pos_             = agent->pos_;
         while (!done)
         {
             agent->updateAction();
@@ -64,23 +63,26 @@ int main(int argc, char **argv)
             env.step();
 
             agent->current_state_tensor_ = agent->stateToTensor();
-            float reward                 = (agent->pos_ - prev_pos).norm();
+            float reward                 = (agent->pos_ - agent->prev_pos_).norm();
             if (agent->crashed_)
             {
                 done   = true;
                 reward = -5.F;
             }
-            agent->policy_.rewards.push_back(reward);
+
+            agent->policy_.rewards_.push_back(reward);
         }
 
         if (episode_idx % 10 == 0)
         {
             std::cout << "------------ EPISODE " << episode_idx << " DONE ---------------" << std::endl;
-            std::cout << "std: " << std::exp(agent->policy_.log_std[0].item<float>()) << " "
-                      << std::exp(agent->policy_.log_std[1].item<float>()) << std::endl;
+            // std::cout << "std: " << std::exp(agent->policy_.log_std[0].item<float>()) << " "
+            //           << std::exp(agent->policy_.log_std[1].item<float>()) << std::endl;
+            std::cout << "throttle std: " << agent->avg_throttle_std_ << " steering std: " << agent->avg_steering_std_
+                      << std::endl;
             std::cout << "avg reward: "
-                      << std::accumulate(agent->policy_.rewards.begin(), agent->policy_.rewards.end(), 0.F) /
-                             agent->policy_.rewards.size()
+                      << std::accumulate(agent->policy_.rewards_.begin(), agent->policy_.rewards_.end(), 0.F) /
+                             agent->policy_.rewards_.size()
                       << std::endl;
         }
 
@@ -107,7 +109,7 @@ int main(int argc, char **argv)
             {
                 break;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 

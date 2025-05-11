@@ -67,6 +67,8 @@ class ReinforceAgent : public Agent
         auto [mu, log_std] = policy_.forward(current_state_tensor_.unsqueeze(0));
 
         torch::Tensor std = torch::exp(log_std);
+        throttle_stds_.push_back(std[0][0].item<float>());
+        steering_stds_.push_back(std[0][1].item<float>());
 
         // Normal distribution sampling
         torch::Tensor action_pre_tanh = mu + std * torch::randn_like(mu);
@@ -83,7 +85,7 @@ class ReinforceAgent : public Agent
         //  -> log(|d(action)/d(action_pre_tanh)|) = -log(1 - action²)
         log_prob -= torch::log(1 - action.pow(2) + 1e-6).sum(-1);
 
-        policy_.saved_log_probs.push_back(log_prob.squeeze(0).clone());
+        policy_.saved_log_probs_.push_back(log_prob.squeeze(0).clone());
 
         auto const action_out = action.detach();
         // Denormalize from [-1, 1] to [0, 100] for throttle and [-10, 10] for steering
@@ -98,7 +100,7 @@ class ReinforceAgent : public Agent
         std::deque<float> returns;
 
         // Reverse-iterate through rewards and calculate discounted returns
-        for (auto r = policy_.rewards.rbegin(); r != policy_.rewards.rend(); ++r)
+        for (auto r = policy_.rewards_.rbegin(); r != policy_.rewards_.rend(); ++r)
         {
             cumulative_discounted_reward = *r + kGamma * cumulative_discounted_reward;
             returns.push_front(cumulative_discounted_reward);
@@ -110,19 +112,26 @@ class ReinforceAgent : public Agent
 
         // We want to maximize log_prob*reward, so we minimize -log_prob*reward
         torch::Tensor loss = torch::tensor(0.0);
-        for (size_t i = 0; i < policy_.saved_log_probs.size(); ++i)
+        for (size_t i = 0; i < policy_.saved_log_probs_.size(); ++i)
         {
-            loss += -(policy_.saved_log_probs[i] * returns_tensor[i]);
+            loss += -(policy_.saved_log_probs_[i] * returns_tensor[i]);
         }
+        // For debugging
+        avg_throttle_std_ = std::accumulate(throttle_stds_.begin(), throttle_stds_.end(), 0.F) /
+                            static_cast<float>(throttle_stds_.size());
+        avg_steering_std_ = std::accumulate(steering_stds_.begin(), steering_stds_.end(), 0.F) /
+                            static_cast<float>(steering_stds_.size());
 
         // Perform backpropagation
         optimizer_.zero_grad();
         loss.backward();
         optimizer_.step();
 
-        // Clear the rewards and saved log probabilities
-        policy_.rewards.clear();
-        policy_.saved_log_probs.clear();
+        // Clear the rewards_ and saved log probabilities
+        policy_.rewards_.clear();
+        policy_.saved_log_probs_.clear();
+        throttle_stds_.clear();
+        steering_stds_.clear();
     }
 
     void applyDeterministicAction()
@@ -146,6 +155,13 @@ class ReinforceAgent : public Agent
   public:
     size_t        current_action_idx_;
     torch::Tensor current_state_tensor_;
+
+    std::vector<float> throttle_stds_;
+    std::vector<float> steering_stds_;
+    float              avg_throttle_std_{0.F};
+    float              avg_steering_std_{0.F};
+
+    Vec2d prev_pos_{};
 
     Policy             policy_{};
     torch::optim::Adam optimizer_;
