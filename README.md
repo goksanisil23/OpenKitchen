@@ -15,7 +15,8 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 
 ##### [Deep-Q Learning with 2D Raycast](/RLRacers/Deep_Q_Learning) :white_check_mark:
 
-##### [REINFORCE with 2D Raycast](/RLRacers/Reinforce) :white_check_mark:
+##### [REINFORCE (discrete) with 2D Raycast](/RLRacers/Reinforce) :white_check_mark:
+##### [REINFORCE (continous) with 2D Raycast](/RLRacers/ReinforceContinuous) :white_check_mark:
 
 ##### [PPO with 2D Raycast](/RLRacers/PPO) :white_check_mark:
 

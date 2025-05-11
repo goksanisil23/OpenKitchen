@@ -116,20 +116,20 @@ class ReinforceAgent : public Agent
         {
             loss += -(policy_.saved_log_probs_[i] * returns_tensor[i]);
         }
-        // For debugging
-        avg_throttle_std_ = std::accumulate(throttle_stds_.begin(), throttle_stds_.end(), 0.F) /
-                            static_cast<float>(throttle_stds_.size());
-        avg_steering_std_ = std::accumulate(steering_stds_.begin(), steering_stds_.end(), 0.F) /
-                            static_cast<float>(steering_stds_.size());
 
         // Perform backpropagation
         optimizer_.zero_grad();
         loss.backward();
         optimizer_.step();
 
-        // Clear the rewards_ and saved log probabilities
+        // Clear the rewards and saved log probabilities
         policy_.rewards_.clear();
         policy_.saved_log_probs_.clear();
+
+        avg_throttle_std_ = std::accumulate(throttle_stds_.begin(), throttle_stds_.end(), 0.F) /
+                            static_cast<float>(throttle_stds_.size());
+        avg_steering_std_ = std::accumulate(steering_stds_.begin(), steering_stds_.end(), 0.F) /
+                            static_cast<float>(steering_stds_.size());
         throttle_stds_.clear();
         steering_stds_.clear();
     }
@@ -160,8 +160,6 @@ class ReinforceAgent : public Agent
     std::vector<float> steering_stds_;
     float              avg_throttle_std_{0.F};
     float              avg_steering_std_{0.F};
-
-    Vec2d prev_pos_{};
 
     Policy             policy_{};
     torch::optim::Adam optimizer_;
