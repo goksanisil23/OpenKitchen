@@ -11,7 +11,12 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Environment ${CMAKE_CURRENT_B
 set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ###############################
-add_executable(${CMAKE_PROJECT_NAME} main.cpp ReadExpertData.hpp Networks.hpp)
+add_executable(${CMAKE_PROJECT_NAME} 
+    main2.cpp
+    # ReadExpertData.hpp
+    # Networks.hpp
+    # GCLAgent.hpp
+)
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE 
     ${RAYLIB_CPP_INCLUDE_DIR}

@@ -11,7 +11,7 @@ struct Sample
     torch::Tensor action; // size [2]
 };
 
-std::vector<Sample> random_sample(const std::vector<Sample> &dataset, size_t N)
+std::vector<Sample> randomSample(const std::vector<Sample> &dataset, size_t N)
 {
     static std::random_device rd;
     static std::mt19937       gen(rd());
@@ -22,8 +22,46 @@ std::vector<Sample> random_sample(const std::vector<Sample> &dataset, size_t N)
     return sampled;
 }
 
+Sample sampleRandomExpertTrajectory(const std::vector<Sample> &dataset, const size_t N)
+{
+    static std::random_device rd;
+    static std::mt19937       gen(rd());
+
+    std::vector<torch::Tensor> states_vec, actions_vec;
+
+    std::uniform_int_distribution<size_t> dist(0, dataset.size() - 1);
+    for (size_t i = 0; i < N; ++i)
+    {
+        // Sample a random index
+        size_t idx = dist(gen);
+        states_vec.push_back(dataset[idx].state);
+        actions_vec.push_back(dataset[idx].action);
+    }
+
+    Sample sampled;
+    sampled.state  = torch::stack(states_vec);
+    sampled.action = torch::stack(actions_vec);
+    return sampled;
+}
+
+Sample getAllExpertSamplesInDataset(const std::vector<Sample> &dataset)
+{
+    std::vector<torch::Tensor> states_vec, actions_vec;
+
+    for (const auto &sample : dataset)
+    {
+        states_vec.push_back(sample.state);
+        actions_vec.push_back(sample.action);
+    }
+
+    Sample sampled;
+    sampled.state  = torch::stack(states_vec);
+    sampled.action = torch::stack(actions_vec);
+    return sampled;
+}
+
 // Load all data samples from txt files in a folder
-std::vector<Sample> load_dataset(const std::string &data_folder)
+std::vector<Sample> loadDataset(const std::string &data_folder, const std::string track_name)
 {
     namespace fs = std::filesystem;
 
@@ -41,6 +79,11 @@ std::vector<Sample> load_dataset(const std::string &data_folder)
     {
         if (entry.path().extension() == ".txt")
         {
+            // Skip the files that doesn't contain the track_name
+            if ((track_name != "") && (entry.path().string().find(track_name) == std::string::npos))
+            {
+                continue;
+            }
             std::ifstream      infile(entry.path());
             std::string        line;
             std::vector<float> state_vals;
