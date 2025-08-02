@@ -24,4 +24,4 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 
 ##### [End-to-end CNN with Birdseye View](/E2E_Supervised) :white_check_mark:
 
-##### [Transformer: 2D Raycast -> Action](/Transformer) :white_check_mark:
+##### [Imitation Learning With Transformer: 2D Raycast -> Action](/ImitationLearningTransformer) :white_check_mark:

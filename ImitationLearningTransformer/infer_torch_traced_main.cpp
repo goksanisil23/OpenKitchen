@@ -63,7 +63,8 @@ class TracedInferAgent : public Agent
         current_action_.steering_delta = 0.F;
 
         // Load the TorchScript model
-        model_ = torch::jit::load("../best_model_scripted.pt");
+        model_ = torch::jit::load(
+            "/home/s0001734/Downloads/OpenKitchen/ImitationLearningTransformer/best_model_scripted.pt");
         model_.to(torch::kCUDA);
         model_.eval();
 
@@ -98,13 +99,6 @@ class TracedInferAgent : public Agent
         }
     }
 
-    void reset(const raylib::Vector2 &reset_pos, const float reset_rot, const size_t track_reset_idx)
-    {
-        Agent::reset(reset_pos, reset_rot);
-
-        sensor_hits_ = std::vector<Vec2d>(sensor_ray_angles_.size());
-    }
-
   private:
     torch::jit::script::Module model_;
     std::vector<float>         normalized_rays_;
@@ -128,29 +122,29 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Environment       env(argv[1]);
+    std::vector<std::unique_ptr<TracedInferAgent>> agents;
+    agents.push_back(std::make_unique<TracedInferAgent>(Vec2d{0, 0}, 0, 0));
+
+    Environment       env(argv[1], createBaseAgentPtrs(agents));
     const std::string track_name{env.race_track_->track_name_};
+    const float       start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float       start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    for (auto &agent : agents)
+    {
+        agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
+    }
 
-    const float      start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
-    const float      start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
-    TracedInferAgent agent({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx], 0);
-    env.setAgent(&agent);
-
-    int32_t reset_idx{RaceTrack::kStartingIdx};
+    TracedInferAgent &agent = *agents[0];
     while (true)
     {
-        agent.reset(
-            {env.race_track_->track_data_points_.x_m[reset_idx], env.race_track_->track_data_points_.y_m[reset_idx]},
-            env.race_track_->headings_[reset_idx],
-            env.race_track_->findNearestTrackIndexBruteForce({env.race_track_->track_data_points_.x_m[reset_idx],
-                                                              env.race_track_->track_data_points_.y_m[reset_idx]}));
+        env.resetAgent(&agent);
         while (!agent.crashed_)
         {
             env.step(); // agent moves in the environment with current_action, produces next_state
             agent.normalizeRayMeasurements();
             agent.updateAction();
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simulate some delay for rendering
         }
-        reset_idx = pickResetPosition(env, &agent);
     }
 
     return 0;
