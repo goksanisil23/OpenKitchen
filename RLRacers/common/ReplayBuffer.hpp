@@ -1,7 +1,6 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <random>
 #include <time.h>
 #include <torch/torch.h>
 #include <vector>
@@ -9,19 +8,17 @@
 #include "CircularVector.hpp"
 #include "Environment/Agent.h"
 
-template <size_t StateDim, size_t ActionDim, typename ActionType, torch::Dtype TorchActionType>
+template <size_t Capacity, size_t StateDim, size_t ActionDim, typename ActionType, torch::Dtype TorchActionType>
 struct ReplayBuffer
 {
     typedef std::array<float, StateDim>       State;
     typedef std::array<ActionType, ActionDim> Action;
 
-    static constexpr size_t kCapacity{1'000'000};
-
-    CircularVector<State>  states      = CircularVector<State>(kCapacity);
-    CircularVector<State>  next_states = CircularVector<State>(kCapacity);
-    CircularVector<Action> actions     = CircularVector<Action>(kCapacity);
-    CircularVector<float>  rewards     = CircularVector<float>(kCapacity);
-    CircularVector<float>  dones       = CircularVector<float>(kCapacity);
+    CircularVector<State>  states      = CircularVector<State>(Capacity);
+    CircularVector<State>  next_states = CircularVector<State>(Capacity);
+    CircularVector<Action> actions     = CircularVector<Action>(Capacity);
+    CircularVector<float>  rewards     = CircularVector<float>(Capacity);
+    CircularVector<float>  dones       = CircularVector<float>(Capacity);
 
     struct Samples
     {
@@ -32,40 +29,41 @@ struct ReplayBuffer
         torch::Tensor dones;
     };
 
-    Samples sample(uint16_t batch_size)
+    Samples sample(uint16_t batch_size, torch::Device device = torch::kCPU)
     {
+        auto const f32 = torch::TensorOptions().dtype(torch::kFloat32).device(device);
+
         Samples samples;
-        srand(time(NULL));
 
-        std::vector<int> chosen_idxs;
-        chosen_idxs.reserve(batch_size);
-        int replay_buffer_current_size{static_cast<int>(states.size())};
+        static thread_local std::mt19937 rng{std::random_device{}()};
 
-        for (auto i{0}; i < batch_size; i++)
-        {
-            int rand_idx = (rand() % replay_buffer_current_size);
-            chosen_idxs.push_back(rand_idx);
-        }
+        const int                          replay_buffer_current_size{static_cast<int>(states.size())};
+        std::uniform_int_distribution<int> dist(0, std::max(0, replay_buffer_current_size - 1));
 
-        torch::Tensor chosen_states_tensor      = torch::empty({batch_size, StateDim}, torch::kFloat32);
-        torch::Tensor chosen_next_states_tensor = torch::empty({batch_size, StateDim}, torch::kFloat32);
+        torch::Tensor chosen_states_tensor      = torch::empty({batch_size, StateDim}, f32);
+        torch::Tensor chosen_next_states_tensor = torch::empty({batch_size, StateDim}, f32);
         torch::Tensor chosen_actions_tensor =
-            torch::empty({batch_size, ActionDim}, torch::TensorOptions().dtype(TorchActionType));
-        torch::Tensor chosen_rewards_tensor = torch::empty({batch_size, 1}, torch::kFloat32);
-        torch::Tensor chosen_dones_tensor   = torch::empty({batch_size, 1}, torch::kFloat32);
+            torch::empty({batch_size, ActionDim}, torch::TensorOptions().dtype(TorchActionType).device(device));
+        torch::Tensor chosen_rewards_tensor = torch::empty({batch_size, 1}, f32);
+        torch::Tensor chosen_dones_tensor   = torch::empty({batch_size, 1}, f32);
 
-        // Flatten for torch conversion
-        size_t batch_idx{0};
-        for (auto idx : chosen_idxs)
+        for (auto b = 0; b < batch_size; ++b)
         {
-            chosen_states_tensor[batch_idx] = torch::from_blob(states[idx].data(), {StateDim}, torch::kFloat32);
-            chosen_next_states_tensor[batch_idx] =
-                torch::from_blob(next_states[idx].data(), {StateDim}, torch::kFloat32);
-            chosen_actions_tensor[batch_idx] =
-                torch::from_blob(&(actions[idx]), {ActionDim}, torch::TensorOptions().dtype(TorchActionType));
-            chosen_rewards_tensor[batch_idx] = torch::from_blob(&(rewards[idx]), {1}, torch::kFloat32);
-            chosen_dones_tensor[batch_idx]   = torch::from_blob(&(dones[idx]), {1}, torch::kFloat32);
-            batch_idx++;
+            const int idx = dist(rng);
+
+            // states
+            for (size_t i = 0; i < StateDim; ++i)
+            {
+                chosen_states_tensor[b][i]      = states[idx][i];
+                chosen_next_states_tensor[b][i] = next_states[idx][i];
+            }
+            // actions
+            for (size_t i = 0; i < ActionDim; ++i)
+            {
+                chosen_actions_tensor[b][i] = actions[idx][i];
+            }
+            chosen_rewards_tensor[b][0] = rewards[idx];
+            chosen_dones_tensor[b][0]   = dones[idx];
         }
 
         samples.states      = chosen_states_tensor.clone();

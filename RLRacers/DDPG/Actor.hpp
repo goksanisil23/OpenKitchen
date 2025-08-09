@@ -22,6 +22,9 @@ struct Actor : torch::nn::Module
         l1 = register_module("l1", torch::nn::Linear(kStateDim, kHiddenLayerSize1));
         l2 = register_module("l2", torch::nn::Linear(kHiddenLayerSize1, kHiddenLayerSize2));
         l3 = register_module("l3", torch::nn::Linear(kHiddenLayerSize2, kActionDim));
+
+        scale = register_buffer("scale", torch::tensor({kOut1Max, kOut2Max}, torch::dtype(torch::kFloat32)));
+        bias  = register_buffer("bias", torch::tensor({kOut1Max, 0.0f}, torch::dtype(torch::kFloat32)));
     }
 
     torch::Tensor forward(torch::Tensor x)
@@ -31,10 +34,10 @@ struct Actor : torch::nn::Module
         x = l2->forward(x);
         x = torch::relu(x);
         x = l3->forward(x);
-        x = torch::tanh(x); // [-1,1]
-        return x * torch::tensor({kOut1Max, kOut2Max}) +
-               torch::tensor({kOut1Max, 0.F}); // to map from [-50,50] to [0,100]
+        x = torch::tanh(x);      // [-1,1]
+        return x * scale + bias; // to map from [-50,50] to [0,100]
     }
 
     torch::nn::Linear l1{nullptr}, l2{nullptr}, l3{nullptr};
+    torch::Tensor     scale, bias;
 };

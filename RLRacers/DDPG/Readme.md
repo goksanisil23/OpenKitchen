@@ -18,3 +18,6 @@ The target actor & critic networks are updated using "soft updates": a weighted 
 
 * DDPG allows to have continuous action space, via the tanh function at the end of forward pass (scaling between [MIN,MAX])
 * Its called "deterministic" since the Actor network directly produces the action instead of probabilities of actions.
+
+### Expected performances
+- Should take ~420 episodes in Austin to complete multiple laps without crash.
