@@ -4,10 +4,10 @@
 #include <algorithm>
 #include <cassert>
 #include <filesystem>
+#include <functional>
 #include <iomanip>
 #include <memory>
 #include <sstream>
-#include <functional>
 
 #include "Agent.h"
 #include "IpcMsgs.h"
@@ -40,8 +40,6 @@ class Visualizer
 
     void close();
 
-    void saveImage(const std::string &name);
-
     static void drawArrow(raylib::Vector2 start, raylib::Vector2 end);
 
     static void shadeAreaBetweenCurves(const std::vector<Vec2d> &curve_1,
@@ -52,6 +50,7 @@ class Visualizer
     raylib::Camera2D                camera_;
     std::unique_ptr<raylib::Window> window_;
     raylib::RenderTexture           render_target_;
+    raylib::RenderTexture           view_rt_;
 
     const Agent *agent_to_follow_{nullptr};
 

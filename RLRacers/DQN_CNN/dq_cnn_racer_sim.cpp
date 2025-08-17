@@ -50,7 +50,6 @@ int main(int argc, char **argv)
                            static_cast<int64_t>(env.race_track_->track_data_points_.x_m.size())));
         env.setAgent(&dq_agents.back());
 
-        dq_agents.back().setSensorRayDrawing(false);
         dq_agents.back().setHeadingDrawing(true);
         dq_agents.back().has_raycast_sensor_ = false;
     }

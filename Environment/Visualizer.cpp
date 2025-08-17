@@ -69,6 +69,7 @@ Visualizer::Visualizer()
 
     // We draw in this texture manner since we want to get pixel values
     render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);
+    view_rt_       = LoadRenderTexture(kScreenWidth, kScreenHeight);
 
     camera_.offset =
         Vector2{window_->GetWidth() / 2.0f, window_->GetHeight() / 2.0f}; // Center the camera view in the window
@@ -98,16 +99,6 @@ void Visualizer::drawAgent(Agent &agent)
         Vec2d const heading_circle_pos = (Vec2d{agent.pos_.x, agent.pos_.y} + heading_end) / 2.F;
         DrawCircle(heading_circle_pos.x, heading_circle_pos.y, agent.radius_ / 2.F, WHITE);
     }
-
-    // if (agent.draw_sensor_rays_ && agent.has_raycast_sensor_)
-    // {
-    //     for (auto const &hit : agent.sensor_hits_)
-    //     {
-    //         DrawCircle(hit.x, hit.y, 2.0F, raylib::Color::DarkPurple());
-    //         // std::cout << "Sensor hit: " << hit.x << ", " << hit.y << std::endl;
-    //     }
-    //     // std::cout << "------------" << std::endl;
-    // }
 }
 
 void Visualizer::setAgentToFollow(const Agent *agent)
@@ -142,6 +133,21 @@ void Visualizer::render()
     else
     {
         camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+
+        // Use a separate view buffer to save the image rendered from the camera view
+        // TODO: Remove this when image saving is not needed
+        {
+            view_rt_.BeginMode();
+            window_->ClearBackground(BLACK);
+            BeginMode2D(camera_);
+            render_target_.GetTexture().Draw(
+                {0.F, 0.F, (float)render_target_.texture.width, (float)-render_target_.texture.height},
+                {0.F, 0.F},
+                WHITE);
+            EndMode2D();
+            view_rt_.EndMode();
+        }
+
         window_->BeginDrawing();
         ClearBackground(BLACK);
         BeginMode2D(camera_);
@@ -169,11 +175,6 @@ void Visualizer::close()
 {
     // UnloadRenderTexture(render_target_);
     window_->Close();
-}
-
-void Visualizer::saveImage(const std::string &name)
-{
-    TakeScreenshot(name.c_str());
 }
 
 void Visualizer::shadeAreaBetweenCurves(const std::vector<Vec2d> &curve_1,

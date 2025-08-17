@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include "../PotentialFieldAgent.hpp"
@@ -25,8 +26,8 @@ class DataCollectorAgent : public PotFieldAgent
         BirdseyeView = 2
     };
 
-    static constexpr MeasurementMode kMeasurementMode{MeasurementMode::Laser2d};
-    static constexpr size_t          kBirdseyeSavePeriod{1};
+    static constexpr MeasurementMode kMeasurementMode{MeasurementMode::BirdseyeView};
+    static constexpr size_t          kBirdseyeSavePeriod{10};
     static constexpr float           kSteeringAngleClampDeg{10.0};
 
     DataCollectorAgent(const Vec2d start_pos, float start_rot, int16_t id) : PotFieldAgent(start_pos, start_rot, id)
@@ -40,7 +41,6 @@ class DataCollectorAgent : public PotFieldAgent
 
         if constexpr (kMeasurementMode == MeasurementMode::BirdseyeView)
         {
-            this->setSensorRayDrawing(false);
             this->setHeadingDrawing(true);
         }
     }
@@ -65,9 +65,8 @@ class DataCollectorAgent : public PotFieldAgent
                 std::ofstream out{filename};
                 out << current_action_.throttle_delta << " " << current_action_.steering_delta;
                 out.close();
-                filename.replace(filename.size() - 4, 4, ".png");
-                // env.render_buffer_->Export(filename);
-                env.visualizer_->saveImage(filename);
+                filename.replace(filename.size() - 4, 4, ".ppm");
+                env.saveImage(filename);
             }
         }
         else if (kMeasurementMode == MeasurementMode::Laser2d)
@@ -172,8 +171,9 @@ int main(int argc, char **argv)
     {
         agents.clear();
         agents.push_back(std::make_unique<DataCollectorAgent>(Vec2d{0, 0}, 0, 0));
+        const bool draw_rays{DataCollectorAgent::kMeasurementMode == DataCollectorAgent::MeasurementMode::Laser2d};
 
-        Environment       env(track_file, createBaseAgentPtrs(agents));
+        Environment       env(track_file, createBaseAgentPtrs(agents), draw_rays);
         const std::string track_name{env.race_track_->track_name_};
 
         float start_pos_x, start_pos_y;
@@ -214,6 +214,7 @@ int main(int argc, char **argv)
         env.step();
         while (goal_index < end_idx)
         {
+            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
             goal_index = getGoalPointIdx(*agent, env);
             agent->setGoalPoint(determineGoalPoint(*agent, env, goal_index, left_right_middle));
             agent->updateAction();

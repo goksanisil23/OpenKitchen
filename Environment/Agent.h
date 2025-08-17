@@ -45,11 +45,6 @@ class Agent
     void setPose(const Vec2d pos, const float rot);
     bool isDone() const;
 
-    inline void setSensorRayDrawing(const bool draw_sensor_rays)
-    {
-        draw_sensor_rays_ = draw_sensor_rays;
-    }
-
     inline void setHeadingDrawing(const bool draw_heading)
     {
         draw_agent_heading_ = draw_heading;
@@ -69,7 +64,6 @@ class Agent
 
     bool has_raycast_sensor_{true};
     bool manual_control_enabled_{true};
-    bool draw_sensor_rays_{true};
     bool draw_agent_heading_{true};
 
     std::vector<float> sensor_ray_angles_;

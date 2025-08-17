@@ -34,8 +34,12 @@ __device__ __forceinline__ bool isBarrierPixel(uchar4 data)
             (data.w == static_cast<unsigned char>(kCudaRightBarrierColor[3])));
 }
 
-__device__ __forceinline__ bool
-checkCollisionAndDrawRays(cudaSurfaceObject_t surface, Ray_ *rays, const int ray_idx, const int x, const int y)
+__device__ __forceinline__ bool checkCollisionAndDrawRays(cudaSurfaceObject_t surface,
+                                                          Ray_               *rays,
+                                                          const int           ray_idx,
+                                                          const int           x,
+                                                          const int           y,
+                                                          const bool          draw_rays)
 {
     uchar4 data;
     int    flipped_y = kCudaScreenHeight - y - 1; // since cuda surface is flipped w.r.t raylib coordinates in y
@@ -49,14 +53,17 @@ checkCollisionAndDrawRays(cudaSurfaceObject_t surface, Ray_ *rays, const int ray
     }
 
     // Color the pixels along the ray, since they're not hit
-    data.x = 255;
-    data.y = 255;
-    data.z = 255;
-    surf2Dwrite(data, surface, x * sizeof(uchar4), flipped_y);
+    if (draw_rays)
+    {
+        data.x = 255;
+        data.y = 255;
+        data.z = 255;
+        surf2Dwrite(data, surface, x * sizeof(uchar4), flipped_y);
+    }
     return false;
 }
 
-__global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const int total_rays)
+__global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const int total_rays, const bool draw_rays)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -91,7 +98,7 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
                 // if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
                 if (x >= 0 && y >= 0)
                 {
-                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y))
+                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
                         break;
 
                     err -= dy;
@@ -117,7 +124,7 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
                 // if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
                 if (x >= 0 && y >= 0)
                 {
-                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y))
+                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
                         break;
 
                     err -= dx;
@@ -138,11 +145,11 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
     }
 }
 
-////////////////////////////////////////
 class CollisionChecker::Impl
 {
   public:
-    Impl(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents)
+    Impl(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents, const bool draw_rays = true)
+        : draw_rays_(draw_rays)
     {
         // Register OpenGL texture to CUDA
         cudaGraphicsGLRegisterImage(
@@ -209,7 +216,7 @@ class CollisionChecker::Impl
         const dim3     blocksPerGrid((static_cast<int>(num_total_rays_) + threadsPerBlock.x - 1) / threadsPerBlock.x);
 
         castRaysKernel<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
-            surface, d_rays_, static_cast<int>(num_total_rays_));
+            surface, d_rays_, static_cast<int>(num_total_rays_), draw_rays_);
 
         cudaMemcpy(h_rays_, d_rays_, num_total_rays_ * sizeof(Ray_), cudaMemcpyDeviceToHost);
 
@@ -259,10 +266,14 @@ class CollisionChecker::Impl
 
     cudaGraphicsResource_t cuda_resource_;
     cudaStream_t           stream_;
+
+    const bool draw_rays_{true};
 };
 
-CollisionChecker::CollisionChecker(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents)
-    : impl_(std::make_unique<Impl>(framebuffer_obj_id, agents))
+CollisionChecker::CollisionChecker(const unsigned int          framebuffer_obj_id,
+                                   const std::vector<Agent *> &agents,
+                                   const bool                  draw_rays)
+    : impl_(std::make_unique<Impl>(framebuffer_obj_id, agents, draw_rays))
 {
 }
 

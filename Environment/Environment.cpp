@@ -11,13 +11,16 @@
 #include "Environment.h"
 #include "raylib-cpp.hpp"
 
-Environment::Environment(const std::string &race_track_path, const std::vector<Agent *> &agents)
+Environment::Environment(const std::string &race_track_path, const std::vector<Agent *> &agents, const bool draw_rays)
 {
     race_track_ = std::make_unique<RaceTrack>(race_track_path);
     visualizer_ = std::make_unique<env::Visualizer>();
 
     // Initialize the collision checker with the framebuffer object ID
-    collision_checker_ = std::make_unique<CollisionChecker>(visualizer_->render_target_.texture.id, agents);
+    collision_checker_ = std::make_unique<CollisionChecker>(visualizer_->render_target_.texture.id, agents, draw_rays);
+    screen_grabber_    = std::make_unique<ScreenGrabber>(visualizer_->view_rt_.texture.id,
+                                                      visualizer_->render_target_.texture.width,
+                                                      visualizer_->render_target_.texture.height);
 
     // Store pointers to the agents
     agents_ = agents;
@@ -146,4 +149,9 @@ bool Environment::isEnterPressed() const
         tcsetattr(STDIN_FILENO, TCSANOW, &oldt); // Restore terminal settings
     }
     return false; // No key was pressed
+}
+
+void Environment::saveImage(const std::string &filename) const
+{
+    screen_grabber_->saveRenderTargetToFile(filename);
 }

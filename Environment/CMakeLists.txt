@@ -8,6 +8,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/../Paths.cmake)
 
 #### CollisionChecker ####
 add_library(CollisionChecker STATIC
+    ScreenGrabber.cpp
+    ScreenGrabber.cu
     CollisionChecker.cpp
     CollisionChecker.cu
 )
@@ -22,7 +24,9 @@ target_include_directories(CollisionChecker PRIVATE
 )
 target_link_libraries(CollisionChecker PRIVATE
     ${CUDA_LIBRARIES}
+    # GL
     GL
+    GLEW
 )
 set_target_properties(CollisionChecker PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
