@@ -65,7 +65,7 @@ class DataCollectorAgent : public PotFieldAgent
                 std::ofstream out{filename};
                 out << current_action_.throttle_delta << " " << current_action_.steering_delta;
                 out.close();
-                filename.replace(filename.size() - 4, 4, ".ppm");
+                filename.replace(filename.size() - 4, 4, ".png");
                 env.saveImage(filename);
             }
         }
@@ -214,7 +214,6 @@ int main(int argc, char **argv)
         env.step();
         while (goal_index < end_idx)
         {
-            // std::this_thread::sleep_for(std::chrono::milliseconds(10));
             goal_index = getGoalPointIdx(*agent, env);
             agent->setGoalPoint(determineGoalPoint(*agent, env, goal_index, left_right_middle));
             agent->updateAction();

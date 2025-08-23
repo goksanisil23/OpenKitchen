@@ -6,6 +6,25 @@ find_package(GLEW REQUIRED)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../Paths.cmake)
 
+include(FetchContent)
+FetchContent_Declare(fpng_repo
+  GIT_REPOSITORY https://github.com/richgel999/fpng.git
+  GIT_TAG        main)
+FetchContent_MakeAvailable(fpng_repo)
+
+add_library(fpng STATIC ${fpng_repo_SOURCE_DIR}/src/fpng.cpp)
+target_include_directories(fpng PUBLIC ${fpng_repo_SOURCE_DIR}/src)
+
+# x86/x64: enable SSE4.1 + PCLMUL on GCC/Clang; others: disable SSE in fpng
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i[3-6]86")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    target_compile_options(fpng PRIVATE -msse4.1 -mpclmul -fno-strict-aliasing)
+  endif()
+else()
+  target_compile_definitions(fpng PUBLIC FPNG_NO_SSE=1)
+endif()
+
+
 #### CollisionChecker ####
 add_library(CollisionChecker STATIC
     ScreenGrabber.cpp
@@ -20,13 +39,15 @@ target_include_directories(CollisionChecker PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_include_directories(CollisionChecker PRIVATE 
-    "/home/s0001734/Downloads/cuda/targets/x86_64-linux/include"    
+    "/home/s0001734/Downloads/cuda/targets/x86_64-linux/include"
+    ${CMAKE_CURRENT_SOURCE_DIR}/External
 )
 target_link_libraries(CollisionChecker PRIVATE
     ${CUDA_LIBRARIES}
     # GL
     GL
     GLEW
+    fpng
 )
 set_target_properties(CollisionChecker PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

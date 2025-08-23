@@ -4,58 +4,50 @@
 #include <vector>
 
 #include <GL/gl.h>
+#include <chrono>
 #include <cuda_gl_interop.h>
 #include <cuda_runtime_api.h>
+#include <fstream>
+
+// #define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "fpng.h"
 
 namespace
 {
 
-bool writePPM_P6(const char *path, const unsigned char *src, int w, int h, bool flip_y = true, bool is_bgra = false)
+void writePNG(const char *path, const unsigned char *rgba, int w, int h, bool flip_y = true)
 {
-    FILE *f = std::fopen(path, "wb");
-    if (!f)
-        return false;
-    std::fprintf(f, "P6\n%d %d\n255\n", w, h);
-
-    std::vector<unsigned char> row((size_t)w * 3);
-    for (int y = 0; y < h; ++y)
+    static bool fpng_initialized = false;
+    if (!fpng_initialized)
     {
-        int                  sy = flip_y ? (h - 1 - y) : y;
-        const unsigned char *s  = src + (size_t)sy * w * 4;
-        unsigned char       *d  = row.data();
-
-        for (int x = 0; x < w; ++x)
-        { // RGBA -> RGB
-            d[0] = s[0];
-            d[1] = s[1];
-            d[2] = s[2];
-            s += 4;
-            d += 3;
-        }
-
-        if (std::fwrite(row.data(), 1, row.size(), f) != row.size())
-        {
-            std::fclose(f);
-            return false;
-        }
+        fpng_initialized = true;
+        fpng::fpng_init();
     }
-    std::fclose(f);
-    return true;
+    const unsigned char       *src = rgba;
+    std::vector<unsigned char> tmp;
+    if (flip_y)
+    {
+        tmp.resize(size_t(w) * h * 4);
+        for (int y = 0; y < h; ++y)
+            memcpy(&tmp[size_t(y) * w * 4], &rgba[size_t(h - 1 - y) * w * 4], size_t(w) * 4);
+        src = tmp.data();
+    }
+    if (!fpng::fpng_encode_image_to_file(path, src, w, h, 4))
+        std::cerr << "FPNG write failed: " << path << "\n";
 }
 
 void saveCudaArrayToFileAsPPM(cudaArray_t cuda_array,
                               const int   w,
                               const int   h,
                               const char *path,
-                              const bool  flip_y      = true,
-                              const bool  src_is_bgra = false)
+                              const bool  flip_y = true)
 {
     std::vector<unsigned char> host_data(static_cast<size_t>(w * h * 4));
     const size_t               pitch{static_cast<size_t>(w) * 4}; // bytes per row on host
     if (cudaMemcpy2DFromArray(host_data.data(), pitch, cuda_array, 0, 0, pitch, h, cudaMemcpyDeviceToHost) ==
         cudaSuccess)
     {
-        writePPM_P6(path, host_data.data(), w, h, flip_y, src_is_bgra);
+        writePNG(path, host_data.data(), w, h, flip_y);
     }
     else
     {
@@ -82,7 +74,7 @@ class ScreenGrabber::Impl
         cudaArray_t cuda_array;
         cudaGraphicsSubResourceGetMappedArray(&cuda_array, cuda_resource_, 0, 0);
 
-        saveCudaArrayToFileAsPPM(cuda_array, width_, height_, filename.c_str(), true, false);
+        saveCudaArrayToFileAsPPM(cuda_array, width_, height_, filename.c_str(), true);
     }
 
   private:
