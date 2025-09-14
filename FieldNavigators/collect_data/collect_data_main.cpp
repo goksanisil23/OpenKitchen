@@ -60,8 +60,8 @@ class DataCollectorAgent : public PotFieldAgent
         {
             if (ctr_ % kBirdseyeSavePeriod == 0)
             {
-                filename = directory_ + "/" + "birdseye_" + track_name + "_" + std::to_string(ctr_) + "_" +
-                           std::to_string(left_right_middle) + ".txt";
+                filename = directory_ + "/" + "birdseye_" + track_name + "_" + std::to_string(left_right_middle) + "_" +
+                           std::to_string(ctr_) + ".txt";
                 std::ofstream out{filename};
                 out << current_action_.throttle_delta << " " << current_action_.steering_delta;
                 out.close();
