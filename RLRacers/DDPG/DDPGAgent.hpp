@@ -39,12 +39,7 @@ class DDPGAgent : public Agent
     DDPGAgent() = default;
 
     // Used when all agents are created initially, with randomized weights
-    DDPGAgent(const Vec2d   start_pos,
-              const float   start_rot,
-              const int16_t id,
-              const size_t  start_idx     = 0,
-              const size_t  track_idx_len = 0)
-        : Agent(start_pos, start_rot, id)
+    DDPGAgent(const Vec2d start_pos, const float start_rot, const int16_t id) : Agent(start_pos, start_rot, id)
     {
 
         device_ = torch::cuda::is_available() ? torch::Device(torch::kCUDA) : torch::Device(torch::kCPU);
