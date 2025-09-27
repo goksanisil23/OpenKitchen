@@ -59,7 +59,7 @@ void Environment::step()
         if (!agent->crashed_)
         {
             agent->move();
-            if (agent->standstill_timed_out_)
+            if (agent->displacement_stats_.displacement_timed_out)
             {
                 agent->crashed_ = true;
             }

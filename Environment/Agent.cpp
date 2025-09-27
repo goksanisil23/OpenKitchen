@@ -5,6 +5,35 @@
 
 #include "Typedefs.h"
 
+namespace
+{
+void checkAndUpdateStandstill(Agent &agent)
+{
+    if (agent.displacement_stats_.displacement_ctr == 0)
+    {
+        agent.displacement_stats_.init_pos               = agent.pos_;
+        agent.displacement_stats_.displacement_timed_out = false;
+        agent.displacement_stats_.displacement_ctr++;
+        return;
+    }
+    if (agent.displacement_stats_.displacement_ctr >= Agent::DisplacementStats::kPeriod)
+    {
+        const float dist_moved = agent.pos_.distanceSquared(agent.displacement_stats_.init_pos);
+        if (dist_moved <
+            Agent::DisplacementStats::kDisplamentThreshold * Agent::DisplacementStats::kDisplamentThreshold)
+        {
+            agent.displacement_stats_.displacement_timed_out = true;
+        }
+        agent.displacement_stats_.displacement_ctr = 0;
+    }
+    else
+    {
+        agent.displacement_stats_.displacement_timed_out = false;
+        agent.displacement_stats_.displacement_ctr++;
+    }
+}
+} // namespace
+
 Agent::Agent(Vec2d start_pos, float start_rot, int16_t id) : pos_{start_pos}, rot_{start_rot}, id_{id}
 {
     // Setup the sensor pattern
@@ -12,10 +41,6 @@ Agent::Agent(Vec2d start_pos, float start_rot, int16_t id) : pos_{start_pos}, ro
     { // Denser pattern towards the middle
         for (int i = -70; i <= 70; i += 1)
         {
-            // if (std::abs(i) < 15)
-            //     sensor_ray_angles_.push_back(static_cast<float>(i));
-            // else if (std::abs(i) > 15 && i % 3 == 0)
-            //     sensor_ray_angles_.push_back(static_cast<float>(i));
             if (i % 10 == 0)
                 sensor_ray_angles_.push_back(static_cast<float>(i));
         }
@@ -100,18 +125,7 @@ void Agent::moveViaAcceleration()
     float delta_y = sin(kDeg2Rad * rot_) * speed_ * kDt;
     pos_.y += delta_y;
 
-    if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
-    {
-        standstill_ctr_++;
-        if (standstill_ctr_ > kStandstillTimeout)
-        {
-            standstill_timed_out_ = true;
-        }
-    }
-    else
-    {
-        standstill_ctr_ = 0;
-    }
+    checkAndUpdateStandstill(*this);
 }
 
 // Follows the center points of the track
@@ -134,18 +148,7 @@ void Agent::moveViaVelocity()
     float delta_y = sin(kDeg2Rad * rot_) * speed_ * kDt;
     pos_.y += delta_y;
 
-    if ((std::abs(delta_x) < kDeltaStandstillLimit) && (std::abs(delta_y) < kDeltaStandstillLimit))
-    {
-        standstill_ctr_++;
-        if (standstill_ctr_ > kStandstillTimeout)
-        {
-            standstill_timed_out_ = true;
-        }
-    }
-    else
-    {
-        standstill_ctr_ = 0;
-    }
+    checkAndUpdateStandstill(*this);
 }
 
 // Only resets the state in the environment and nothing related to the controller that might or might not need to
@@ -157,10 +160,10 @@ void Agent::reset(const Vec2d &reset_pos, const float reset_rot)
     acceleration_ = 0.F;
     speed_        = 0.F;
 
-    crashed_              = false;
-    completed_            = false;
-    standstill_timed_out_ = false;
-    standstill_ctr_       = 0;
+    crashed_   = false;
+    completed_ = false;
+
+    displacement_stats_ = DisplacementStats{};
 
     current_action_ = Action{0.F, 0.F};
 }
