@@ -5,35 +5,6 @@
 
 #include "Typedefs.h"
 
-namespace
-{
-void checkAndUpdateStandstill(Agent &agent)
-{
-    if (agent.displacement_stats_.displacement_ctr == 0)
-    {
-        agent.displacement_stats_.init_pos               = agent.pos_;
-        agent.displacement_stats_.displacement_timed_out = false;
-        agent.displacement_stats_.displacement_ctr++;
-        return;
-    }
-    if (agent.displacement_stats_.displacement_ctr >= Agent::DisplacementStats::kPeriod)
-    {
-        const float dist_moved = agent.pos_.distanceSquared(agent.displacement_stats_.init_pos);
-        if (dist_moved <
-            Agent::DisplacementStats::kDisplamentThreshold * Agent::DisplacementStats::kDisplamentThreshold)
-        {
-            agent.displacement_stats_.displacement_timed_out = true;
-        }
-        agent.displacement_stats_.displacement_ctr = 0;
-    }
-    else
-    {
-        agent.displacement_stats_.displacement_timed_out = false;
-        agent.displacement_stats_.displacement_ctr++;
-    }
-}
-} // namespace
-
 Agent::Agent(Vec2d start_pos, float start_rot, int16_t id) : pos_{start_pos}, rot_{start_rot}, id_{id}
 {
     // Setup the sensor pattern
@@ -124,8 +95,6 @@ void Agent::moveViaAcceleration()
     pos_.x += delta_x;
     float delta_y = sin(kDeg2Rad * rot_) * speed_ * kDt;
     pos_.y += delta_y;
-
-    checkAndUpdateStandstill(*this);
 }
 
 // Follows the center points of the track
@@ -147,8 +116,6 @@ void Agent::moveViaVelocity()
     pos_.x += delta_x;
     float delta_y = sin(kDeg2Rad * rot_) * speed_ * kDt;
     pos_.y += delta_y;
-
-    checkAndUpdateStandstill(*this);
 }
 
 // Only resets the state in the environment and nothing related to the controller that might or might not need to
@@ -161,9 +128,8 @@ void Agent::reset(const Vec2d &reset_pos, const float reset_rot)
     speed_        = 0.F;
 
     crashed_   = false;
+    timed_out_ = false;
     completed_ = false;
-
-    displacement_stats_ = DisplacementStats{};
 
     current_action_ = Action{0.F, 0.F};
 }

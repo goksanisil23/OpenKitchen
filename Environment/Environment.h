@@ -13,16 +13,20 @@
 
 #include "raylib-cpp.hpp"
 
+struct DisplacementStats
+{
+    static constexpr uint32_t kPeriod{200};
+    static constexpr float    kDisplamentThreshold{20.0F};
+
+    // If the agent has not moved sufficiently for kPeriod steps, we consider it timed out
+    bool     displacement_timed_out{false};
+    uint32_t displacement_ctr{0U};
+
+    Vec2d init_pos{0.F, 0.F}; // position at the start of the period
+};
 class Environment
 {
   public:
-    struct State
-    {
-        float              speed;
-        float              rotation;
-        std::vector<Vec2d> sensor_hits;
-    };
-
     Environment(const std::string &race_track_path, const std::vector<Agent *> &agents, const bool draw_rays = true);
 
     void drawSensorRanges(const std::vector<Vec2d> &sensor_hits);
@@ -44,6 +48,7 @@ class Environment
     std::unique_ptr<RaceTrack>        race_track_;
     std::unique_ptr<env::Visualizer>  visualizer_;
     std::vector<Agent *>              agents_;
+    std::vector<DisplacementStats>    displacement_stats_;
     std::unique_ptr<raylib::Image>    render_buffer_{nullptr};
     std::unique_ptr<CollisionChecker> collision_checker_{nullptr};
     std::unique_ptr<ScreenGrabber>    screen_grabber_{nullptr};

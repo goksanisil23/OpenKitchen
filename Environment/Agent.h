@@ -10,7 +10,6 @@ class Agent
     static constexpr float kSensorRange{200.F};
     static constexpr float kSpeedLimit{100.F};
     static constexpr float kRotationLimit{360.F};
-    // displacement threshold used to indicate an agent is standstill
 
     struct Action
     {
@@ -23,18 +22,6 @@ class Agent
         VELOCITY     = 0, // agent moves by directly setting the velocity
         ACCELERATION = 1, // agent moves by setting the acceleration that affects velocity
         MANUAL       = 2  // agent moves by the human keyboard input
-    };
-
-    struct DisplacementStats
-    {
-        static constexpr uint32_t kPeriod{200};
-        static constexpr float    kDisplamentThreshold{20.0F};
-
-        // If the agent has not moved sufficiently for kPeriod steps, we consider it timed out
-        bool     displacement_timed_out{false};
-        uint32_t displacement_ctr{0U};
-
-        Vec2d init_pos{0.F, 0.F}; // position at the start of the period
     };
 
     Agent() = default;
@@ -80,8 +67,7 @@ class Agent
 
     bool crashed_{false};
     bool completed_{false};
-
-    DisplacementStats displacement_stats_{};
+    bool timed_out_{false};
 
     std::vector<Vec2d> sensor_hits_;
     std::vector<Pixel> pixels_until_hit_;

@@ -11,6 +11,34 @@
 #include "Environment.h"
 #include "raylib-cpp.hpp"
 
+namespace
+{
+void checkAndUpdateStandstill(const Agent &agent, DisplacementStats &displacement_stats)
+{
+    if (displacement_stats.displacement_ctr == 0)
+    {
+        displacement_stats.init_pos               = agent.pos_;
+        displacement_stats.displacement_timed_out = false;
+        displacement_stats.displacement_ctr++;
+        return;
+    }
+    if (displacement_stats.displacement_ctr >= DisplacementStats::kPeriod)
+    {
+        const float dist_moved = agent.pos_.distanceSquared(displacement_stats.init_pos);
+        if (dist_moved < DisplacementStats::kDisplamentThreshold * DisplacementStats::kDisplamentThreshold)
+        {
+            displacement_stats.displacement_timed_out = true;
+        }
+        displacement_stats.displacement_ctr = 0;
+    }
+    else
+    {
+        displacement_stats.displacement_timed_out = false;
+        displacement_stats.displacement_ctr++;
+    }
+}
+} // namespace
+
 Environment::Environment(const std::string &race_track_path, const std::vector<Agent *> &agents, const bool draw_rays)
 {
     race_track_ = std::make_unique<RaceTrack>(race_track_path);
@@ -24,6 +52,8 @@ Environment::Environment(const std::string &race_track_path, const std::vector<A
 
     // Store pointers to the agents
     agents_ = agents;
+
+    displacement_stats_.resize(agents.size());
 }
 
 void Environment::drawSensorRanges(const std::vector<Vec2d> &sensor_hits)
@@ -54,14 +84,19 @@ void Environment::resetAgent(Agent *agent, const bool pick_random_point)
 void Environment::step()
 {
     // -------- 1) Kinematics Update of Agents -------- //
-    for (auto agent : agents_)
+    // for (auto agent : agents_)
+    for (uint16_t i{0}; i < agents_.size(); i++)
     {
+        auto &agent              = agents_[i];
+        auto &displacement_stats = displacement_stats_[i];
         if (!agent->crashed_)
         {
             agent->move();
-            if (agent->displacement_stats_.displacement_timed_out)
+            checkAndUpdateStandstill(*agent, displacement_stats);
+            if (displacement_stats.displacement_timed_out)
             {
-                agent->crashed_ = true;
+                agent->crashed_   = true;
+                agent->timed_out_ = true;
             }
         }
     }
