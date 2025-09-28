@@ -48,6 +48,7 @@ class CmaEsAgent : public Agent
     void updateAction() override
     {
         // TODO: Based on sensor readings
+        current_state_tensor_ = stateToTensor();
 
         current_action_.throttle_delta = 10.F;
         current_action_.steering_delta = 0;
@@ -98,11 +99,6 @@ int main(int argc, char **argv)
         // need to get an initial observation for the intial action, after reset
         env.step();
 
-        for (auto &agent : agents)
-        {
-            agent->current_state_tensor_ = agent->stateToTensor();
-        }
-
         while (!all_done)
         {
             for (auto &agent : agents)
@@ -115,7 +111,6 @@ int main(int argc, char **argv)
             all_done = true;
             for (auto &agent : agents)
             {
-                agent->current_state_tensor_ = agent->stateToTensor();
                 if (!agent->crashed_)
                 {
                     all_done = false;
