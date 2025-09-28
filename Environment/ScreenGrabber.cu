@@ -77,6 +77,23 @@ class ScreenGrabber::Impl
         saveCudaArrayToFileAsPPM(cuda_array, width_, height_, filename.c_str(), true);
     }
 
+    std::vector<uint8_t> getRenderTarget()
+    {
+        std::vector<uint8_t> host_data(static_cast<size_t>(width_ * height_ * 4));
+        const size_t         pitch{static_cast<size_t>(width_ * 4)}; // bytes per row on host
+
+        cudaGraphicsMapResources(1, &cuda_resource_, 0);
+        cudaArray_t cuda_array;
+        cudaGraphicsSubResourceGetMappedArray(&cuda_array, cuda_resource_, 0, 0);
+
+        if (cudaMemcpy2DFromArray(host_data.data(), pitch, cuda_array, 0, 0, pitch, height_, cudaMemcpyDeviceToHost) !=
+            cudaSuccess)
+        {
+            std::cerr << "Failed to copy data from CUDA array to host memory." << std::endl;
+        }
+        return host_data;
+    }
+
   private:
     cudaGraphicsResource_t cuda_resource_;
     const int              width_;
@@ -93,4 +110,9 @@ ScreenGrabber::~ScreenGrabber() = default;
 void ScreenGrabber::saveRenderTargetToFile(const std::string &filename)
 {
     impl_->saveRenderTargetToFile(filename);
+}
+
+std::vector<uint8_t> ScreenGrabber::getRenderTarget() const
+{
+    return impl_->getRenderTarget();
 }

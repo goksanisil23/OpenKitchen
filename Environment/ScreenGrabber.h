@@ -1,6 +1,8 @@
 #pragma once
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 class ScreenGrabber
 {
@@ -9,6 +11,8 @@ class ScreenGrabber
     ~ScreenGrabber();
 
     void saveRenderTargetToFile(const std::string &filename);
+
+    std::vector<uint8_t> getRenderTarget() const;
 
   private:
     class Impl;
