@@ -32,7 +32,7 @@ class CmaEsAgent : public Agent
         current_action_.steering_delta = 0.F;
 
         // 5 inputs, 16 hidden, 2 outputs
-        controller_ = std::make_unique<Controller>(static_cast<int64_t>(sensor_ray_angles_.size()), 16, 2);
+        controller_ = std::make_unique<Controller>(static_cast<int64_t>(sensor_ray_angles_.size()), 16, 1);
         controller_->to(device_);
     }
 
@@ -58,8 +58,9 @@ class CmaEsAgent : public Agent
         torch::Tensor action_tensor = controller_->forward(current_state_tensor_);
 
         // Action tensor is [-1, 1]. Scale it to a reasonable range.
-        current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
-        current_action_.steering_delta = action_tensor[1].item<float>() * 5.0F;                  // Scale to [-5, 5]
+        // current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
+        current_action_.throttle_delta = 100.F;
+        current_action_.steering_delta = action_tensor[0].item<float>() * 5.0F; // Scale to [-5, 5]
     }
 
     void reset(const Vec2d &reset_pos, const float reset_rot) override
