@@ -61,7 +61,10 @@ class ScreenGrabber::Impl
 {
 
   public:
-    Impl(const unsigned int id, const int width, const int height) : width_(width), height_(height)
+    static constexpr int kChannels = 4;
+
+    Impl(const unsigned int id, const int width, const int height)
+        : width_(width), height_(height), render_target_info_{width, height, kChannels}
     {
         cudaGraphicsGLRegisterImage(&cuda_resource_, id, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
     }
@@ -77,10 +80,10 @@ class ScreenGrabber::Impl
         saveCudaArrayToFileAsPPM(cuda_array, width_, height_, filename.c_str(), true);
     }
 
-    std::vector<uint8_t> getRenderTarget()
+    std::vector<uint8_t> getRenderTargetHost()
     {
-        std::vector<uint8_t> host_data(static_cast<size_t>(width_ * height_ * 4));
-        const size_t         pitch{static_cast<size_t>(width_ * 4)}; // bytes per row on host
+        std::vector<uint8_t> host_data(static_cast<size_t>(width_ * height_ * kChannels));
+        const size_t         pitch{static_cast<size_t>(width_ * kChannels)}; // bytes per row on host
 
         cudaGraphicsMapResources(1, &cuda_resource_, 0);
         cudaArray_t cuda_array;
@@ -91,13 +94,34 @@ class ScreenGrabber::Impl
         {
             std::cerr << "Failed to copy data from CUDA array to host memory." << std::endl;
         }
+        cudaGraphicsUnmapResources(1, &cuda_resource_, 0);
         return host_data;
+    }
+
+    RenderTargetInfo getRenderTargetInfo() const
+    {
+        return render_target_info_;
+    }
+
+    void getRenderTargetDevice(void *dst, size_t dst_pitch)
+    {
+        cudaGraphicsMapResources(1, &cuda_resource_, 0);
+        cudaArray_t cuda_array;
+        cudaGraphicsSubResourceGetMappedArray(&cuda_array, cuda_resource_, 0, 0);
+
+        const size_t row_bytes = render_target_info_.row_bytes();
+        const size_t height    = static_cast<size_t>(render_target_info_.height);
+
+        cudaMemcpy2DFromArray(dst, dst_pitch, cuda_array, 0, 0, row_bytes, height, cudaMemcpyDeviceToDevice);
+        cudaGraphicsUnmapResources(1, &cuda_resource_, 0);
     }
 
   private:
     cudaGraphicsResource_t cuda_resource_;
     const int              width_;
     const int              height_;
+
+    const ScreenGrabber::RenderTargetInfo render_target_info_;
 };
 
 ScreenGrabber::ScreenGrabber(const unsigned int id, const int width, const int height)
@@ -112,7 +136,17 @@ void ScreenGrabber::saveRenderTargetToFile(const std::string &filename)
     impl_->saveRenderTargetToFile(filename);
 }
 
-std::vector<uint8_t> ScreenGrabber::getRenderTarget() const
+std::vector<uint8_t> ScreenGrabber::getRenderTargetHost() const
 {
-    return impl_->getRenderTarget();
+    return impl_->getRenderTargetHost();
+}
+
+ScreenGrabber::RenderTargetInfo ScreenGrabber::getRenderTargetInfo() const
+{
+    return impl_->getRenderTargetInfo();
+}
+
+void ScreenGrabber::getRenderTargetDevice(void *dst, size_t dst_pitch)
+{
+    impl_->getRenderTargetDevice(dst, dst_pitch);
 }
