@@ -93,62 +93,40 @@ int main(int argc, char **argv)
     CmaEsSolver cma_solver(num_params, kPopulationSize);
 
     std::vector<std::unique_ptr<CmaEsAgent>> agents;
-    for (int16_t i{0}; i < static_cast<int16_t>(kPopulationSize); i++)
-    {
-        agents.push_back(std::make_unique<CmaEsAgent>(Vec2d{0, 0}, 0, i));
-    }
+    // We're gonna reuse the same agent for all the population (in serial)
+    agents.push_back(std::make_unique<CmaEsAgent>(Vec2d{0, 0}, 0, 0));
 
     Environment env(argv[1], createBaseAgentPtrs(agents));
 
     const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
     const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
-    for (auto &agent : agents)
-    {
-        agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
-    }
+    auto       &agent = agents[0];
+    agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
 
     uint32_t episode_idx{0};
 
-    bool all_done{false};
     while (true)
     {
         // Ask the solver for a new population of candidate parameters
         std::vector<torch::Tensor>      population = cma_solver.sample();
         std::vector<SolutionAndFitness> solution_fitness_pairs;
-        solution_fitness_pairs.resize(agents.size());
+        solution_fitness_pairs.resize(kPopulationSize);
 
-        all_done = false;
-
-        for (size_t i{0}; i < agents.size(); i++)
+        for (int i = 0; i < kPopulationSize; i++)
         {
-            auto &agent = agents[i];
             env.resetAgent(agent.get(), kResetAgentsRandomly);
             agent->controller_->set_params(population[i]);
-        }
 
-        // need to get an initial observation for the intial action, after reset
-        env.step();
-        for (auto &agent : agents)
-        {
+            // need to get an initial observation for the intial action, after reset
+            env.step();
             agent->prev_track_idx_ = env.race_track_->findNearestTrackIndexBruteForce(agent->pos_);
-        }
 
-        while (!all_done)
-        {
-            for (auto &agent : agents)
+            while (!agent->crashed_)
             {
                 agent->updateAction();
-            }
-
-            env.step();
-
-            all_done = true;
-            for (auto &agent : agents)
-            {
+                env.step();
                 if (!agent->crashed_)
                 {
-                    all_done = false;
-
                     const size_t  curr_track_idx = env.race_track_->findNearestTrackIndexBruteForce(agent->pos_);
                     const int32_t progress{static_cast<int32_t>(curr_track_idx) -
                                            static_cast<int32_t>(agent->prev_track_idx_)};
@@ -160,11 +138,7 @@ int main(int argc, char **argv)
                     agent->fitness_ = 0.F;
                 }
             }
-        }
-
-        for (size_t i{0}; i < agents.size(); i++)
-        {
-            solution_fitness_pairs.push_back({population[i], agents[i]->fitness_});
+            solution_fitness_pairs.push_back({population[i], agent->fitness_});
         }
 
         cma_solver.tell(solution_fitness_pairs);
