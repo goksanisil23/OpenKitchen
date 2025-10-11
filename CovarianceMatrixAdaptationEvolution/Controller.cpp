@@ -1,6 +1,6 @@
 #include "Controller.h"
 
-Controller::Controller(int64_t input_size, int64_t hidden_size, int64_t output_size)
+Controller::Controller(const int64_t input_size, const int64_t hidden_size, const int64_t output_size)
 {
     fc1_ = register_module("fc1", torch::nn::Linear(input_size, hidden_size));
     fc2_ = register_module("fc2", torch::nn::Linear(hidden_size, output_size));

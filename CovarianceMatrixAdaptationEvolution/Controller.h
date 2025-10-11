@@ -7,7 +7,7 @@
 class Controller : public torch::nn::Module
 {
   public:
-    Controller(int64_t input_size, int64_t hidden_size, int64_t output_size);
+    Controller(const int64_t input_size, const int64_t hidden_size, const int64_t output_size);
 
     // The forward pass
     torch::Tensor forward(torch::Tensor x);
