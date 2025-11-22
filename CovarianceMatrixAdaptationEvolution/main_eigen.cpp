@@ -61,8 +61,9 @@ class CmaEsAgent : public Agent
         torch::Tensor action_tensor = controller_->forward(current_state_tensor_);
 
         // Action tensor is [-1, 1]. Scale it to a reasonable range.
-        current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
-        current_action_.steering_delta = action_tensor[1].item<float>() * 5.0F;                  // Scale to [-5, 5]
+        // current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
+        current_action_.throttle_delta = 100.F;
+        current_action_.steering_delta = action_tensor[0].item<float>() * 5.0F; // Scale to [-5, 5]
     }
 
     void reset(const Vec2d &reset_pos, const float reset_rot) override

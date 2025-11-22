@@ -23,12 +23,15 @@ class CmaEsAgent : public Agent
         device_ = torch::Device(torch::kCPU);
 
         // Re-configure the sensor ray angles so that we only have 5 rays
+        constexpr int   num_rays     = 128;
+        constexpr float kRayMinAngle = -70.F;
+        constexpr float kRayMaxAngle = 70.F;
         sensor_ray_angles_.clear();
-        sensor_ray_angles_.push_back(-70.F);
-        sensor_ray_angles_.push_back(-30.F);
-        sensor_ray_angles_.push_back(0.F);
-        sensor_ray_angles_.push_back(30.F);
-        sensor_ray_angles_.push_back(70.F);
+        for (int i{0}; i < num_rays; i++)
+        {
+            float angle = kRayMinAngle + i * (kRayMaxAngle - kRayMinAngle) / (num_rays - 1);
+            sensor_ray_angles_.push_back(angle);
+        }
 
         current_action_.throttle_delta = 0.F;
         current_action_.steering_delta = 0.F;
@@ -64,6 +67,7 @@ class CmaEsAgent : public Agent
         // current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
         current_action_.throttle_delta = 100.F;
         current_action_.steering_delta = action_tensor[0].item<float>() * 5.0F; // Scale to [-5, 5]
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     void reset(const Vec2d &reset_pos, const float reset_rot) override

@@ -7,14 +7,13 @@
 struct SolutionAndFitness
 {
     torch::Tensor solution;
-    double        fitness;
+    float         fitness;
 };
 
 class CmaEsSolver
 {
   public:
-    CmaEsSolver(int num_params, int population_size);                       // default: CPU
-    CmaEsSolver(int num_params, int population_size, torch::Device device); // choose device
+    CmaEsSolver(int num_params, int population_size, torch::Device device = torch::kCPU, const float sigma = 0.5F);
 
     std::vector<torch::Tensor> sample();
     void                       tell(const std::vector<SolutionAndFitness> &solutions);
@@ -27,7 +26,7 @@ class CmaEsSolver
     const int num_parents_;
 
     // step-size
-    double sigma_;
+    float sigma_;
 
     // state (float64 on device_)
     torch::Tensor param_mean_; // [N]
@@ -37,25 +36,24 @@ class CmaEsSolver
     torch::Tensor weights_;    // [mu]
 
     // constants
-    double mu_eff_;
-    double c_sigma_, d_sigma_;
-    double c_c_, c_1_, c_mu_;
-    double chiN_;
+    float mu_eff_;
+    float c_sigma_, d_sigma_;
+    float c_c_, c_1_, c_mu_;
+    float chiN_;
 
     // sampling cache
-    torch::Tensor B_; // [N,N]
-    torch::Tensor D_; // [N]
+    torch::Tensor B_; // eigenvectors of C, [N,N]
+    torch::Tensor D_; // eigenvalues of C, [N]
 
     // device
     torch::Device device_{torch::kCPU};
 
-    // helpers
-    inline torch::TensorOptions opts64() const
+    inline torch::TensorOptions opts32() const
     {
-        return torch::dtype(torch::kFloat64).device(device_);
+        return torch::dtype(torch::kFloat32).device(device_);
     }
 
     // kept for compatibility
-    std::mt19937                     rand_generator_{std::random_device{}()};
-    std::normal_distribution<double> norm_dist_{0.0, 1.0};
+    std::mt19937                    rand_generator_{std::random_device{}()};
+    std::normal_distribution<float> norm_dist_{0.0, 1.0};
 };

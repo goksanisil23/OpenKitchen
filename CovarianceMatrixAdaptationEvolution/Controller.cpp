@@ -3,13 +3,19 @@
 Controller::Controller(const int64_t input_size, const int64_t hidden_size, const int64_t output_size)
 {
     fc1_ = register_module("fc1", torch::nn::Linear(input_size, hidden_size));
-    fc2_ = register_module("fc2", torch::nn::Linear(hidden_size, output_size));
+    // fc2_ = register_module("fc2", torch::nn::Linear(hidden_size, output_size));
+    fc2_ = register_module("fc2", torch::nn::Linear(hidden_size, hidden_size / 2));
+    fc3_ = register_module("fc3", torch::nn::Linear(hidden_size / 2, output_size));
 }
 
 torch::Tensor Controller::forward(torch::Tensor x)
 {
+    // x = torch::tanh(fc1_->forward(x));
+    // x = torch::tanh(fc2_->forward(x)); // Tanh activation to bound outputs to [-1, 1]
+
     x = torch::tanh(fc1_->forward(x));
-    x = torch::tanh(fc2_->forward(x)); // Tanh activation to bound outputs to [-1, 1]
+    x = torch::tanh(fc2_->forward(x));
+    x = torch::tanh(fc3_->forward(x));
     return x;
 }
 
