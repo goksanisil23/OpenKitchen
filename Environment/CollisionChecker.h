@@ -7,9 +7,7 @@
 class CollisionChecker
 {
   public:
-    CollisionChecker(const unsigned int          framebuffer_obj_id,
-                     const std::vector<Agent *> &agents,
-                     const bool                  draw_rays = true);
+    CollisionChecker(const unsigned int texture_id, const std::vector<Agent *> &agents, const bool draw_rays = true);
     ~CollisionChecker();
 
     // Returns true if a collision is detected.

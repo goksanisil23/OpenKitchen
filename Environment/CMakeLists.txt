@@ -3,6 +3,7 @@ project(Environment LANGUAGES CXX CUDA)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(GLEW REQUIRED)
+find_package(CUDA REQUIRED)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../Paths.cmake)
 
@@ -24,7 +25,6 @@ else()
   target_compile_definitions(fpng PUBLIC FPNG_NO_SSE=1)
 endif()
 
-
 #### CollisionChecker ####
 add_library(CollisionChecker STATIC
     ScreenGrabber.cpp
@@ -39,12 +39,11 @@ target_include_directories(CollisionChecker PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_include_directories(CollisionChecker PRIVATE 
-    "/home/s0001734/Downloads/cuda/targets/x86_64-linux/include"
+    ${CUDA_INCLUDE_DIRS}
     ${CMAKE_CURRENT_SOURCE_DIR}/External
 )
 target_link_libraries(CollisionChecker PRIVATE
     ${CUDA_LIBRARIES}
-    # GL
     GL
     GLEW
     fpng
@@ -52,7 +51,7 @@ target_link_libraries(CollisionChecker PRIVATE
 set_target_properties(CollisionChecker PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    CUDA_ARCHITECTURES "50"
+    CUDA_ARCHITECTURES "89"
 )
 
 #### Main Environment ####

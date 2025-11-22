@@ -95,8 +95,8 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
             int err = dx / 2;
             while (x != x1)
             {
-                // if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
-                if (x >= 0 && y >= 0)
+                if (x >= 0 && x < kCudaScreenWidth && y >= 0 && y < kCudaScreenHeight)
+                // if (x >= 0 && y >= 0)
                 {
                     if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
                         break;
@@ -121,8 +121,8 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
             int err = dy / 2;
             while (y != y1)
             {
-                // if (x >= 0 && x < SCREEN_WIDTH && y >= 0 && y < SCREEN_HEIGHT)
-                if (x >= 0 && y >= 0)
+                if (x >= 0 && x < kCudaScreenWidth && y >= 0 && y < kCudaScreenHeight)
+                // if (x >= 0 && y >= 0)
                 {
                     if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
                         break;
@@ -148,12 +148,17 @@ __global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const in
 class CollisionChecker::Impl
 {
   public:
-    Impl(const unsigned int framebuffer_obj_id, const std::vector<Agent *> &agents, const bool draw_rays = true)
+    Impl(const unsigned int texture_id, const std::vector<Agent *> &agents, const bool draw_rays = true)
         : draw_rays_(draw_rays)
     {
+        if (!glIsTexture(texture_id))
+        {
+            std::cerr << "Not a valid GL texture: " << texture_id << std::endl;
+        }
+
         // Register OpenGL texture to CUDA
         cudaGraphicsGLRegisterImage(
-            &cuda_resource_, framebuffer_obj_id, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
+            &cuda_resource_, texture_id, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
         cudaStreamCreate(&stream_);
 
         agents_         = agents;
@@ -217,6 +222,7 @@ class CollisionChecker::Impl
 
         castRaysKernel<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
             surface, d_rays_, static_cast<int>(num_total_rays_), draw_rays_);
+        cudaGetLastError();
 
         cudaMemcpy(h_rays_, d_rays_, num_total_rays_ * sizeof(Ray_), cudaMemcpyDeviceToHost);
 
@@ -270,10 +276,10 @@ class CollisionChecker::Impl
     const bool draw_rays_{true};
 };
 
-CollisionChecker::CollisionChecker(const unsigned int          framebuffer_obj_id,
+CollisionChecker::CollisionChecker(const unsigned int          texture_id,
                                    const std::vector<Agent *> &agents,
                                    const bool                  draw_rays)
-    : impl_(std::make_unique<Impl>(framebuffer_obj_id, agents, draw_rays))
+    : impl_(std::make_unique<Impl>(texture_id, agents, draw_rays))
 {
 }
 

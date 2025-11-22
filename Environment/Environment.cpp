@@ -132,12 +132,6 @@ void Environment::step()
             env::Visualizer::shadeAreaBetweenCurves(
                 race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 255, 0, 255));
         }
-
-        // drawTrackPointNumbers(track_data_points);
-        // genetic::util::drawActionBar(agents, iteration);
-        // genetic::util::drawEpisodeNum(episode_idx);
-        // genetic::util::drawTrackTitle(race_track->track_name_);
-        // visualizer_->drawTrackTitle(race_track_->track_name_);
     }
     visualizer_->disableDrawing();
 
