@@ -5,10 +5,11 @@ import json
 import numpy as np
 import torch
 from inspect import signature
+import cv2
+
 
 from train_vae import VAE
 
-# ---- import existing code (no redefinitions) ----
 from train_rnn import (
     GRUDynamics,
     LatentActionSeq,
@@ -29,24 +30,30 @@ def load_vae(vae_ckpt_path, device):
     return vae, cfg
 
 
+# torch -> numpy (RGB 0..1) -> BGR uint8 for OpenCV
+def to_bgr_uint8(t_img):
+    img = t_img.detach().cpu().permute(1, 2, 0).numpy()  # H,W,3 RGB
+    img = (img * 255.0).round().astype(np.uint8)
+    return img[:, :, ::-1]  # RGB->BGR
+
+
 @torch.no_grad()
 def visualize_stepwise(
-    image_size, model, vae, val_loader, device, z_mean, z_std, out_path, n_pairs=16
+    image_size, rnn_model, vae_model, val_loader, device, z_mean, z_std
 ):
-    import cv2
-
-    model.eval()
-    vae.eval()
+    rnn_model.eval()
+    vae_model.eval()
 
     z_mean = z_mean.to(device)
     z_std = z_std.to(device)
 
-    cv2.namedWindow("val_triplet", cv2.WINDOW_NORMAL)
+    cv2.namedWindow("RNN Validation", cv2.WINDOW_NORMAL)
 
     for x, y, paths_next in val_loader:
-        x = x.to(device)  # (B,T,dz+da)
-        y = y.to(device)  # (B,T,dz)
-        zhat_norm, _ = model(x)  # (B,T,dz)
+        x = x.to(device)  # (B,T,dz+da) --> input to RNN
+        y = y.to(device)  # (B,T,dz) --> GT latent vector = z_t+1
+        print(f"RNN input shape: {x.shape}")
+        zhat_norm, _ = rnn_model(x)  # (B,T,dz)
 
         B, T, dz = zhat_norm.shape
 
@@ -56,16 +63,8 @@ def visualize_stepwise(
                 z_pred = zhat_norm[b, t] * z_std + z_mean  # (dz,)
                 z_gt = y[b, t] * z_std + z_mean  # (dz,)
 
-                pred_img = (
-                    vae.decode(z_pred.unsqueeze(0)).squeeze(0).clamp(0, 1)
-                )  # (3,H,W)
-                gt_img = vae.decode(z_gt.unsqueeze(0)).squeeze(0).clamp(0, 1)  # (3,H,W)
-
-                # torch -> numpy (RGB 0..1) -> BGR uint8 for OpenCV
-                def to_bgr_uint8(t_img):
-                    img = t_img.detach().cpu().permute(1, 2, 0).numpy()  # H,W,3 RGB
-                    img = (img * 255.0).round().astype(np.uint8)
-                    return img[:, :, ::-1]  # RGB->BGR
+                pred_img = vae_model.decode(z_pred.unsqueeze(0)).squeeze(0).clamp(0, 1)
+                gt_img = vae_model.decode(z_gt.unsqueeze(0)).squeeze(0).clamp(0, 1)
 
                 pred_np = to_bgr_uint8(pred_img)
                 gt_np = to_bgr_uint8(gt_img)
@@ -73,23 +72,12 @@ def visualize_stepwise(
                 # raw image via OpenCV (already BGR)
                 p = paths_next[t][b]  # time-major [T][B]
                 raw = cv2.imread(p, cv2.IMREAD_COLOR)
-                if raw is None:
-                    continue
                 raw = cv2.resize(
                     raw, (image_size, image_size), interpolation=cv2.INTER_LINEAR
                 )
 
-                # ensure same H,W for decoded images
-                H, W = image_size, image_size
-                if pred_np.shape[:2] != (H, W):
-                    pred_np = cv2.resize(
-                        pred_np, (W, H), interpolation=cv2.INTER_LINEAR
-                    )
-                if gt_np.shape[:2] != (H, W):
-                    gt_np = cv2.resize(gt_np, (W, H), interpolation=cv2.INTER_LINEAR)
-
                 triplet = np.concatenate([raw, gt_np, pred_np], axis=1)
-                caption = f"val b={b}, t={t}  [raw | decode(z_gt) | decode(z_pred)]"
+                caption = f"val, [raw | decode(z_gt) | decode(z_pred)]"
                 vis = triplet.copy()
                 cv2.putText(
                     vis,
@@ -102,7 +90,7 @@ def visualize_stepwise(
                     cv2.LINE_AA,
                 )
 
-                cv2.imshow("val_triplet", vis)
+                cv2.imshow("RNN Validation", vis)
                 k = cv2.waitKey(0) & 0xFF  # wait for key per image
                 if k in (ord("q"), 27):  # 'q' or ESC to quit
                     cv2.destroyAllWindows()
@@ -132,8 +120,7 @@ def main():
     p.add_argument("--npz_path", type=str, default="latent_dataset.npz")
     p.add_argument("--rnn_ckpt", type=str, default="dyn_outputs/gru_dyn_best.pt")
     p.add_argument("--vae_ckpt", type=str, default="vae_outputs/vae_state.pt")
-    p.add_argument("--batch_size", type=int, default=32)
-    p.add_argument("--num_workers", type=int, default=4)
+    p.add_argument("--batch_size", type=int, default=1)
     p.add_argument("--cpu", action="store_true")
     args = p.parse_args()
 
@@ -145,11 +132,10 @@ def main():
     ck = torch.load(args.rnn_ckpt, map_location="cpu")
     cfg = ck.get("args", {})
     seq_len = int(cfg.get("seq_len", 5))
+    seq_len = 1
 
     # --- data + stats ---
     z, a, img_paths = load_latent_npz(args.npz_path)
-    for pt in img_paths:
-        print(pt)
     _, z_dim = z.shape
     a_dim = a.shape[1]
 
@@ -161,38 +147,39 @@ def main():
     a_std = stats["a_std"].astype(np.float32)
 
     starts = make_starts(img_paths, seq_len)
-    ds = LatentActionSeq(z, a, img_paths, starts, seq_len, z_mean, z_std, a_mean, a_std)
+    dataset = LatentActionSeq(
+        z, a, img_paths, starts, seq_len, z_mean, z_std, a_mean, a_std
+    )
     val_loader = torch.utils.data.DataLoader(
-        ds,
+        dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
+        num_workers=4,
         pin_memory=True,
         drop_last=False,
     )
 
     # --- model ---
-    model = build_model(z_dim, a_dim, cfg, device)
-    model.load_state_dict(ck["model"], strict=True)
-    model.eval()
+    rnn_model = build_model(z_dim, a_dim, cfg, device)
+    rnn_model.load_state_dict(ck["model"], strict=True)
+    rnn_model.eval()
+    print(f"rnn config: {cfg}")
 
     # --- vae ---
-    vae, vae_cfg = load_vae(args.vae_ckpt, device)
+    vae_model, vae_cfg = load_vae(args.vae_ckpt, device)
     image_size = int(vae_cfg["image_size"])
 
-    # --- visualize (OpenCV) ---
+    # --- visualize ---
     z_mean_t = torch.from_numpy(z_mean).to(device)
     z_std_t = torch.from_numpy(z_std).to(device)
     visualize_stepwise(
         image_size=image_size,
-        model=model,
-        vae=vae,
+        rnn_model=rnn_model,
+        vae_model=vae_model,
         val_loader=val_loader,
         device=device,
         z_mean=z_mean_t,
         z_std=z_std_t,
-        out_path=None,
-        n_pairs=0,
     )
 
 

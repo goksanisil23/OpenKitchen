@@ -96,9 +96,9 @@ class GRUDynamics(nn.Module):
         )
         self.head = nn.Linear(hidden, z_dim)
 
-    def forward(self, x, h0=None):
+    def forward(self, x):
         # x: (B, T, z+a)
-        y, h = self.gru(x, h0)  # y: (B,T,H)
+        y, h = self.gru(x)  # y: (B,T,H)
         z_next = self.head(y)  # (B,T,dz)
         return z_next, h
 
@@ -143,6 +143,7 @@ def train(args):
     # load data
     z, a, img_paths = load_latent_npz(args.npz_path)
     N, z_dim = z.shape
+    print("loaded latent dataset: z:", z.shape, "a:", a.shape)
     assert a.shape[0] == N, "Check action length"
     assert len(img_paths) == N, "Check image paths length"
     action_dim = a.shape[1]
@@ -150,8 +151,8 @@ def train(args):
 
     # indices of sequence starts (sliding window)
     starts = make_starts(img_paths, args.seq_len)
-    for s in starts:
-        print(f"valid img start: {img_paths[s]}")
+    # for s in starts:
+    #     print(f"valid img start: {img_paths[s]}")
     # split on sequence-start level
     num_seq = len(starts)
     val_len = int(num_seq * args.val_ratio)
@@ -169,6 +170,7 @@ def train(args):
     mask = np.zeros(N, dtype=bool)
     for s in train_starts:
         mask[s : s + args.seq_len] = True
+    print(f"Using {mask.sum()}/{N} samples for computing normalization stats")
     z_mean, z_std, a_mean, a_std = compute_norm_stats(z[mask], a[mask])
     # save stats
     np.savez_compressed(
