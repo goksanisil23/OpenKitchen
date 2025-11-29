@@ -67,7 +67,6 @@ class CmaEsAgent : public Agent
         // current_action_.throttle_delta = (action_tensor[0].item<float>() + 1.0F) / 2.0F * 100.F; // Scale to [0, 100]
         current_action_.throttle_delta = 100.F;
         current_action_.steering_delta = action_tensor[0].item<float>() * 5.0F; // Scale to [-5, 5]
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
     void reset(const Vec2d &reset_pos, const float reset_rot) override
@@ -79,10 +78,9 @@ class CmaEsAgent : public Agent
   public:
     torch::Tensor               current_state_tensor_;
     std::unique_ptr<Controller> controller_;
-    torch::Device               device_{torch::kCPU};
+    torch::Device               device_{torch::kCUDA};
     float                       fitness_{0.F};
-
-    size_t prev_track_idx_{};
+    size_t                      prev_track_idx_{};
 };
 
 int main(int argc, char **argv)
@@ -115,7 +113,7 @@ int main(int argc, char **argv)
         // Ask the solver for a new population of candidate parameters
         std::vector<torch::Tensor>      population = cma_solver.sample();
         std::vector<SolutionAndFitness> solution_fitness_pairs;
-        solution_fitness_pairs.resize(kPopulationSize);
+        solution_fitness_pairs.reserve(kPopulationSize);
 
         for (int i = 0; i < kPopulationSize; i++)
         {

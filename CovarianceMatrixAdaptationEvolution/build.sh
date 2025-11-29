@@ -2,8 +2,6 @@
 
 export PATH=/home/s0001734/Downloads/cuda_13.0/bin:$PATH
 export LD_LIBRARY_PATH=/home/s0001734/Downloads/cuda_13.0/lib64:$LD_LIBRARY_PATH
-export __NV_PRIME_RENDER_OFFLOAD=1 
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
 mkdir -p build
 cmake -DCMAKE_PREFIX_PATH=/home/s0001734/Downloads/libtorch-shared-with-deps-2.9.1+cu130/libtorch -DCMAKE_BUILD_TYPE=Release -S . -B build
 cmake --build build

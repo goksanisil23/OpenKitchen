@@ -116,7 +116,7 @@ int main(int argc, char **argv)
         // Ask the solver for a new population of candidate parameters
         std::vector<torch::Tensor>      population = cma_solver.sample();
         std::vector<SolutionAndFitness> solution_fitness_pairs;
-        solution_fitness_pairs.resize(agents.size());
+        solution_fitness_pairs.reserve(agents.size());
 
         all_done = false;
 
