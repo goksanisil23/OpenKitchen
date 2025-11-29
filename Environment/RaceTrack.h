@@ -32,6 +32,9 @@ class RaceTrack
     // Given a 2d-coordinate, finds the nearest track-center coordinate index
     size_t findNearestTrackIndexBruteForce(const Vec2d &query_pt) const;
 
+    // Given a 2d-coordinate, finds the nearest distance to the track boundary
+    float getNearestDistanceToTrackBoundary(const Vec2d &query_pt) const;
+
   private:
     std::vector<std::string> getCSVFilesInDirectory(const std::string &directory_path);
 

@@ -30,6 +30,26 @@ size_t RaceTrack::findNearestTrackIndexBruteForce(const Vec2d &query_pt) const
     return min_idx;
 }
 
+float RaceTrack::getNearestDistanceToTrackBoundary(const Vec2d &query_pt) const
+{
+    float min_distance = std::numeric_limits<float>::max();
+    float distance;
+    for (size_t i{0}; i < left_bound_inner_.size(); i++)
+    {
+        distance = query_pt.distanceSquared(left_bound_inner_[i]);
+        if (distance < min_distance)
+        {
+            min_distance = distance;
+        }
+        distance = query_pt.distanceSquared(right_bound_inner_[i]);
+        if (distance < min_distance)
+        {
+            min_distance = distance;
+        }
+    }
+    return std::sqrt(min_distance);
+}
+
 std::vector<std::string> RaceTrack::getCSVFilesInDirectory(const std::string &directory_path)
 {
     std::vector<std::string> csv_files;
