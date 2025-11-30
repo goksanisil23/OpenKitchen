@@ -10,6 +10,7 @@
 #include "PPOAgent.hpp"
 
 constexpr int16_t kNumAgents{15};
+constexpr bool    kResetToRandomPoint{true};
 
 int main(int argc, char **argv)
 {
@@ -49,11 +50,13 @@ int main(int argc, char **argv)
 
         for (auto &agent : agents)
         {
-            env.resetAgent(agent.get());
+            env.resetAgent(agent.get(), kResetToRandomPoint);
         }
 
         // need to get an initial observation for the intial action, after reset
         env.step();
+        for (auto &agent : agents)
+            agent->prev_track_idx_ = env.race_track_->findNearestTrackIndexBruteForce(agent->pos_);
 
         while (!all_done)
         {
@@ -73,16 +76,16 @@ int main(int argc, char **argv)
                 agent->experience_buffer_.saved_rewards.push_back(1.0F);
                 if (!agent->crashed_)
                 {
-                    // agent.experience_buffer_.saved_rewards.push_back(1.0F);
                     all_done = false;
+
+                    // const size_t  curr_track_idx = env.race_track_->findNearestTrackIndexBruteForce(agent->pos_);
+                    // const int32_t progress{static_cast<int32_t>(curr_track_idx) -
+                    //                        static_cast<int32_t>(agent->prev_track_idx_)};
+                    // agent->prev_track_idx_ = curr_track_idx;
+                    // agent->experience_buffer_.saved_rewards.push_back(static_cast<float>(progress));
                 }
-                // else
-                // {
-                //     agent.experience_buffer_.saved_rewards.push_back(-5.F);
-                // }
             }
         }
-
         rl::PPOAgent::updatePolicy();
 
         episode_idx++;
