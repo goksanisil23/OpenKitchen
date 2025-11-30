@@ -9,10 +9,10 @@
 
 constexpr int16_t kNumAgents{1};
 
-class CmaEsAgent : public Agent
+class TemplateAgent : public Agent
 {
   public:
-    CmaEsAgent(const Vec2d start_pos, const float start_rot, const int16_t id) : Agent(start_pos, start_rot, id)
+    TemplateAgent(const Vec2d start_pos, const float start_rot, const int16_t id) : Agent(start_pos, start_rot, id)
     {
 
         device_ = torch::cuda::is_available() ? torch::Device(torch::kCUDA) : torch::Device(torch::kCPU);
@@ -68,10 +68,10 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    std::vector<std::unique_ptr<CmaEsAgent>> agents;
+    std::vector<std::unique_ptr<TemplateAgent>> agents;
     for (int16_t i{0}; i < kNumAgents; i++)
     {
-        agents.push_back(std::make_unique<CmaEsAgent>(Vec2d{0, 0}, 0, i));
+        agents.push_back(std::make_unique<TemplateAgent>(Vec2d{0, 0}, 0, i));
     }
 
     Environment env(argv[1], createBaseAgentPtrs(agents));
