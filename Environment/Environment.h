@@ -27,7 +27,10 @@ struct DisplacementStats
 class Environment
 {
   public:
-    Environment(const std::string &race_track_path, const std::vector<Agent *> &agents, const bool draw_rays = true);
+    Environment(const std::string          &race_track_path,
+                const std::vector<Agent *> &agents,
+                const bool                  draw_rays     = true,
+                const bool                  hidden_window = false);
 
     void drawSensorRanges(const std::vector<Vec2d> &sensor_hits);
 

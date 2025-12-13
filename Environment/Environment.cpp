@@ -39,10 +39,13 @@ void checkAndUpdateStandstill(const Agent &agent, DisplacementStats &displacemen
 }
 } // namespace
 
-Environment::Environment(const std::string &race_track_path, const std::vector<Agent *> &agents, const bool draw_rays)
+Environment::Environment(const std::string          &race_track_path,
+                         const std::vector<Agent *> &agents,
+                         const bool                  draw_rays,
+                         const bool                  hidden_window)
 {
     race_track_ = std::make_unique<RaceTrack>(race_track_path);
-    visualizer_ = std::make_unique<env::Visualizer>();
+    visualizer_ = std::make_unique<env::Visualizer>(hidden_window);
 
     // Initialize the collision checker with the framebuffer object ID
     collision_checker_ = std::make_unique<CollisionChecker>(visualizer_->render_target_.texture.id, agents, draw_rays);

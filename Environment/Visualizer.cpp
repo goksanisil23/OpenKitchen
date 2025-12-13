@@ -11,10 +11,14 @@ float crossProduct(raylib::Vector2 v1, raylib::Vector2 v2)
 }
 } // namespace
 
-Visualizer::Visualizer()
+Visualizer::Visualizer(const bool hidden_window)
 {
     SetTraceLogLevel(LOG_ERROR);
 
+    if (hidden_window)
+    {
+        raylib::Window::SetConfigFlags(FLAG_WINDOW_HIDDEN);
+    }
     window_ = std::make_unique<raylib::Window>(kScreenWidth, kScreenHeight, "");
     window_->SetPosition(40, 20);
 
@@ -83,7 +87,8 @@ void Visualizer::render()
     }
     else
     {
-        camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+        camera_.target   = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+        camera_.rotation = agent_to_follow_->rot_;
 
         // Use a separate view buffer to save the image rendered from the camera view
         // TODO: Remove this when image saving is not needed

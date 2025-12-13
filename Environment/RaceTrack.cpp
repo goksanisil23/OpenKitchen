@@ -50,6 +50,27 @@ float RaceTrack::getNearestDistanceToTrackBoundary(const Vec2d &query_pt) const
     return std::sqrt(min_distance);
 }
 
+float RaceTrack::getDistanceToLaneCenter(const Vec2d &query_pt) const
+{
+    float  min_distance = std::numeric_limits<float>::max();
+    float  distance;
+    size_t min_dist_idx;
+    for (size_t i{0}; i < track_data_points_.x_m.size(); i++)
+    {
+        distance = query_pt.distanceSquared({track_data_points_.x_m[i], track_data_points_.y_m[i]});
+        if (distance < min_distance)
+        {
+            min_distance = distance;
+            min_dist_idx = i;
+        }
+    }
+    // Return the ratio w.r.t lane width
+    const float lane_width =
+        track_data_points_.w_tr_left_m[min_dist_idx] + track_data_points_.w_tr_right_m[min_dist_idx];
+
+    return std::sqrt(min_distance) / (lane_width);
+}
+
 std::vector<std::string> RaceTrack::getCSVFilesInDirectory(const std::string &directory_path)
 {
     std::vector<std::string> csv_files;

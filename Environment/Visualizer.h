@@ -23,7 +23,7 @@ constexpr bool kContinuousLoop{true};
 class Visualizer
 {
   public:
-    Visualizer();
+    Visualizer(const bool hidden_window = false);
 
     void activateDrawing(bool const clear_background = true);
 
