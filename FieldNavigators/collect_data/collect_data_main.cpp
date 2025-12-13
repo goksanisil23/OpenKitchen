@@ -172,8 +172,9 @@ int main(int argc, char **argv)
         agents.clear();
         agents.push_back(std::make_unique<DataCollectorAgent>(Vec2d{0, 0}, 0, 0));
         const bool draw_rays{DataCollectorAgent::kMeasurementMode == DataCollectorAgent::MeasurementMode::Laser2d};
+        const bool hidden_window{true};
 
-        Environment       env(track_file, createBaseAgentPtrs(agents), draw_rays);
+        Environment       env(track_file, createBaseAgentPtrs(agents), draw_rays, hidden_window);
         const std::string track_name{env.race_track_->track_name_};
 
         float start_pos_x, start_pos_y;
