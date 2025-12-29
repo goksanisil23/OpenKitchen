@@ -40,12 +40,26 @@ class Environment
     int32_t pickRandomResetTrackIdx() const;
 
     // If pick_random_point is true, pick a random point on the track to reset the agent
-    // else reset the agent to the starting point of the track
-    void resetAgent(Agent *agent, const bool pick_random_point = true);
+    // else reset the agent to the starting point of the track.
+    // Lane randomization is only applied if pick_random_point is true.
+    // Heading randomization is only applied if pick_random_point is true.
+    void resetAgent(Agent     *agent,
+                    const bool pick_random_point = true,
+                    const bool randomize_lane    = false,
+                    const bool randomize_heading = false);
 
     bool isEnterPressed() const;
 
     void saveImage(const std::string &filename) const;
+
+    std::vector<uint8_t> getRenderTargetHost() const
+    {
+        return screen_grabber_->getRenderTargetHost();
+    };
+    ScreenGrabber::RenderTargetInfo getRenderTargetInfo() const
+    {
+        return screen_grabber_->getRenderTargetInfo();
+    };
 
   public:
     std::unique_ptr<RaceTrack>        race_track_;
