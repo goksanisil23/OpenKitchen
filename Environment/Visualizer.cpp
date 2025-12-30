@@ -9,6 +9,7 @@ float crossProduct(raylib::Vector2 v1, raylib::Vector2 v2)
 {
     return v1.x * v2.y - v1.y * v2.x;
 }
+
 } // namespace
 
 Visualizer::Visualizer(const bool hidden_window)
@@ -35,6 +36,7 @@ Visualizer::Visualizer(const bool hidden_window)
 void Visualizer::activateDrawing(bool const clear_background)
 {
     render_target_.BeginMode();
+    rlDisableBackfaceCulling();
     if (clear_background)
         window_->ClearBackground(BLACK);
 }
@@ -49,11 +51,21 @@ void Visualizer::drawAgent(Agent &agent)
     // Draw heading line for robot
     if (agent.draw_agent_heading_)
     {
-        Vec2d       heading_end        = {agent.pos_.x + agent.radius_ * cos(kDeg2Rad * agent.rot_),
-                                          agent.pos_.y + agent.radius_ * sin(kDeg2Rad * agent.rot_)};
-        Vec2d const heading_circle_pos = (Vec2d{agent.pos_.x, agent.pos_.y} + heading_end) / 2.F;
-        DrawCircle(heading_circle_pos.x, heading_circle_pos.y, agent.radius_ / 2.F, WHITE);
+        const float   rot_rad = kDeg2Rad * agent.rot_;
+        const Vector2 center{agent.pos_.x, agent.pos_.y};
+        const float   r = agent.radius_;
+
+        // Front half (facing heading)
+        DrawCircleSector(center, r, (rot_rad * RAD2DEG) - 90, (rot_rad * RAD2DEG) + 90, 8, raylib::Color::White());
     }
+    //     // Draw heading line for robot
+    // if (agent.draw_agent_heading_)
+    // {
+    //     Vec2d       heading_end        = {agent.pos_.x + agent.radius_ * cos(kDeg2Rad * agent.rot_),
+    //                                       agent.pos_.y + agent.radius_ * sin(kDeg2Rad * agent.rot_)};
+    //     Vec2d const heading_circle_pos = (Vec2d{agent.pos_.x, agent.pos_.y} + heading_end) / 2.F;
+    //     DrawCircle(heading_circle_pos.x, heading_circle_pos.y, agent.radius_ / 2.F, WHITE);
+    // }
 }
 
 void Visualizer::setAgentToFollow(const Agent *agent)
@@ -87,8 +99,8 @@ void Visualizer::render()
     }
     else
     {
-        camera_.target   = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
-        camera_.rotation = agent_to_follow_->rot_;
+        camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+        // camera_.rotation = agent_to_follow_->rot_;
 
         // Use a separate view buffer to save the image rendered from the camera view
         // TODO: Remove this when image saving is not needed

@@ -74,13 +74,49 @@ int32_t Environment::pickRandomResetTrackIdx() const
     return GetRandomValue(0, static_cast<int32_t>(race_track_->track_data_points_.x_m.size()) - 1);
 }
 
-void Environment::resetAgent(Agent *agent, const bool pick_random_point)
+void Environment::resetAgent(Agent     *agent,
+                             const bool pick_random_point,
+                             const bool randomize_lane,
+                             const bool randomize_heading)
 {
-    int32_t     reset_idx = pick_random_point ? pickRandomResetTrackIdx() : RaceTrack::kStartingIdx;
-    const float start_pos_x{race_track_->track_data_points_.x_m[reset_idx]};
-    const float start_pos_y{race_track_->track_data_points_.y_m[reset_idx]};
+    int32_t reset_idx = pick_random_point ? pickRandomResetTrackIdx() : RaceTrack::kStartingIdx;
+
+    // If randomizing heading, add a random offset in [-45, 45] degrees
+    float         heading_offset = 0.F;
+    static size_t ctr            = 0;
+    if (pick_random_point && randomize_heading)
+    {
+        constexpr float kHeadingRandomizationRangeDeg{45.F};
+        heading_offset = static_cast<float>(GetRandomValue(0, kHeadingRandomizationRangeDeg));
+        if (ctr % 2 == 0)
+        {
+            heading_offset = (heading_offset + kHeadingRandomizationRangeDeg) * -1.F;
+        }
+        else
+        {
+            heading_offset = heading_offset + kHeadingRandomizationRangeDeg;
+        }
+        ctr++;
+    }
+
+    float start_pos_x;
+    float start_pos_y;
+    // Find a random point between the left and right lane boundaries. Alpha in [0, 1]
+    if (pick_random_point && randomize_lane)
+    {
+        auto const  nearest_lane_boundary_l = race_track_->left_bound_inner_[reset_idx];
+        auto const  nearest_lane_boundary_r = race_track_->right_bound_inner_[reset_idx];
+        const float alpha                   = static_cast<float>(GetRandomValue(10, 90)) / 100.F;
+        start_pos_x = nearest_lane_boundary_l.x * alpha + nearest_lane_boundary_r.x * (1.F - alpha);
+        start_pos_y = nearest_lane_boundary_l.y * alpha + nearest_lane_boundary_r.y * (1.F - alpha);
+    }
+    else
+    {
+        start_pos_x = race_track_->track_data_points_.x_m[reset_idx];
+        start_pos_y = race_track_->track_data_points_.y_m[reset_idx];
+    }
     // Base Agent reset() is marked virtual, hence we expect derived Agent's reset to be called here
-    agent->reset({start_pos_x, start_pos_y}, race_track_->headings_[reset_idx]);
+    agent->reset({start_pos_x, start_pos_y}, race_track_->headings_[reset_idx] + heading_offset);
 }
 
 // Iterates 1 step in the environment given the current action and returns the next state of the agent

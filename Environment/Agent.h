@@ -40,6 +40,10 @@ class Agent
     void moveViaUserInput();
     void setPose(const Vec2d pos, const float rot);
     bool isDone() const;
+    void setMovementMode(const MovementMode mode)
+    {
+        movement_mode_ = mode;
+    }
 
     inline void setHeadingDrawing(const bool draw_heading)
     {
