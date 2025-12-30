@@ -15,7 +15,9 @@
 #include "../PotentialFieldAgent.hpp"
 #include "Environment/Environment.h"
 
-static constexpr std::string_view kTrackName = "";
+static constexpr std::string_view kTrackName = "SaoPaulo.csv";
+
+constexpr bool kHiddenWindow{true};
 
 class DataCollectorAgent : public PotFieldAgent
 {
@@ -27,7 +29,7 @@ class DataCollectorAgent : public PotFieldAgent
     };
 
     static constexpr MeasurementMode kMeasurementMode{MeasurementMode::BirdseyeView};
-    static constexpr size_t          kBirdseyeSavePeriod{10};
+    static constexpr size_t          kBirdseyeSavePeriod{1};
     static constexpr float           kSteeringAngleClampDeg{10.0};
 
     DataCollectorAgent(const Vec2d start_pos, float start_rot, int16_t id) : PotFieldAgent(start_pos, start_rot, id)
@@ -89,7 +91,9 @@ class DataCollectorAgent : public PotFieldAgent
     }
 
   public:
-    const std::string directory_{"measurements_and_actions"};
+    const std::string directory_{kTrackName.empty() ? "measurements_and_actions_3_lanes"
+                                                    : (std::string(kTrackName.substr(0, kTrackName.find_last_of('.'))) +
+                                                       std::string("_3_lanes"))};
     size_t            ctr_{0};
 };
 
@@ -104,10 +108,10 @@ size_t getGoalPointIdx(const DataCollectorAgent &agent, const Environment &env)
 Vec2d determineGoalPoint(const DataCollectorAgent &agent,
                          const Environment        &env,
                          const size_t              goal_index,
-                         const int                 left_right_middle)
+                         const int                 left_right_middle,
+                         const bool                disturbance = true)
 {
-    constexpr bool kDisturbance{true};
-    if constexpr (kDisturbance)
+    if (disturbance)
     {
         // Pick somewhere between the goal point and the nearest track boundary (laterally)
         auto  nearest_boundary_l = env.race_track_->left_bound_inner_[goal_index];
@@ -171,10 +175,9 @@ int main(int argc, char **argv)
     {
         agents.clear();
         agents.push_back(std::make_unique<DataCollectorAgent>(Vec2d{0, 0}, 0, 0));
-        const bool draw_rays{DataCollectorAgent::kMeasurementMode == DataCollectorAgent::MeasurementMode::Laser2d};
-        const bool hidden_window{true};
+        constexpr bool draw_rays{DataCollectorAgent::kMeasurementMode == DataCollectorAgent::MeasurementMode::Laser2d};
 
-        Environment       env(track_file, createBaseAgentPtrs(agents), draw_rays, hidden_window);
+        Environment       env(track_file, createBaseAgentPtrs(agents), draw_rays, kHiddenWindow);
         const std::string track_name{env.race_track_->track_name_};
 
         float start_pos_x, start_pos_y;
@@ -206,9 +209,10 @@ int main(int argc, char **argv)
         auto const &agent = agents[0];
 
         agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
+        agent->setMovementMode(Agent::MovementMode::ACCELERATION);
 
         env.visualizer_->setAgentToFollow(agent.get());
-        env.visualizer_->camera_.zoom = 10.0f;
+        env.visualizer_->camera_.zoom = 15.0f;
 
         size_t goal_index = 0;
         size_t end_idx    = env.race_track_->track_data_points_.x_m.size() - 1;
