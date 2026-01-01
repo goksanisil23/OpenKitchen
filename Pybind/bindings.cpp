@@ -25,13 +25,13 @@ class BoundEnv
         env_ = std::make_unique<Environment>(race_track_path, createBaseAgentPtrs(agents_), draw_rays, hidden_window);
 
         // Place the agent at the starting position
-        const auto  start_idx = RaceTrack::kStartingIdx;
+        // const auto start_idx = RaceTrack::kStartingIdx;
+        const auto  start_idx = env_->pickRandomResetTrackIdx();
         const float start_x   = env_->race_track_->track_data_points_.x_m[start_idx];
         const float start_y   = env_->race_track_->track_data_points_.y_m[start_idx];
         agents_[0]->reset({start_x, start_y}, env_->race_track_->headings_[start_idx]);
 
         env_->visualizer_->setAgentToFollow(agents_[0].get());
-        env_->visualizer_->camera_.zoom = 15.0f;
     }
 
     void setAction(const float throttle_delta, const float steering_delta)

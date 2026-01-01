@@ -209,10 +209,8 @@ int main(int argc, char **argv)
         auto const &agent = agents[0];
 
         agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
-        agent->setMovementMode(Agent::MovementMode::ACCELERATION);
 
         env.visualizer_->setAgentToFollow(agent.get());
-        env.visualizer_->camera_.zoom = 15.0f;
 
         size_t goal_index = 0;
         size_t end_idx    = env.race_track_->track_data_points_.x_m.size() - 1;

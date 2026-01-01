@@ -157,7 +157,6 @@ int main(int argc, char **argv)
         agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
 
         env.visualizer_->setAgentToFollow(agent.get());
-        env.visualizer_->camera_.zoom = 15.0f;
 
         // Sub-portion of the full race track
         size_t const    track_len = env.race_track_->track_data_points_.x_m.size();

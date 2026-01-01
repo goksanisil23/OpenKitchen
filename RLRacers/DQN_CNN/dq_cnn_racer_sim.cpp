@@ -55,7 +55,6 @@ int main(int argc, char **argv)
     }
 
     env.visualizer_->setAgentToFollow(&dq_agents.front());
-    env.visualizer_->camera_.zoom = 10.0f;
 
     uint32_t episode_idx{0};
     int32_t  reset_idx{RaceTrack::kStartingIdx};

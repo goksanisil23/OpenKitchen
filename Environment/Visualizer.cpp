@@ -71,6 +71,8 @@ void Visualizer::drawAgent(Agent &agent)
 void Visualizer::setAgentToFollow(const Agent *agent)
 {
     agent_to_follow_ = agent;
+    // When following agent, we need to zoom in the camera.
+    camera_.zoom = 15.0f;
 }
 
 void Visualizer::drawTrackTitle(const std::string &track_name)
