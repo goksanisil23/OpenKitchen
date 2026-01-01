@@ -115,7 +115,6 @@ int main(int argc, char **argv)
     env.setAgent(&agent);
 
     env.visualizer_->setAgentToFollow(&agent);
-    env.visualizer_->camera_.zoom = 10.0f;
     agent.setHeadingDrawing(true);
 
     int32_t reset_idx{RaceTrack::kStartingIdx};
