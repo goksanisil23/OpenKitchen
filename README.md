@@ -22,6 +22,11 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 
 ##### [DDPG with 2D Raycast](/RLRacers/DDPG) :white_check_mark:
 
-##### [End-to-end CNN with Birdseye View](/E2E_Supervised) :white_check_mark:
+##### [Behavioral Cloning with CNN: BEV image -> Action](/BehavioralCloning) :white_check_mark:
 
 ##### [Imitation Learning With Transformer: 2D Raycast -> Action](/ImitationLearningTransformer) :white_check_mark:
+
+##### [Covariance Matrix Adaptation](/CovarianceMatrixAdaptationEvolution/) :white_check_mark:
+
+##### [World Model with Vae & Rnn](/WorldModelVaeRnn/) :white_check_mark:
+
