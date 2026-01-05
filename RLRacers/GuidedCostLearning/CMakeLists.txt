@@ -12,10 +12,9 @@ set(ENVIRONMENT_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
 
 ###############################
 add_executable(${CMAKE_PROJECT_NAME} 
-    main2.cpp
-    # ReadExpertData.hpp
-    # Networks.hpp
-    # GCLAgent.hpp
+    ReadExpertData.hpp
+    Networks.hpp
+    GCLAgent.hpp
 )
 
 target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE 
