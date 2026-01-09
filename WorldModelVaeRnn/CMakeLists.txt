@@ -31,7 +31,7 @@ target_link_libraries(CMA_ES PRIVATE
 
 ############ World Model ############
 set(WORLD_MODEL_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/main_dino_control.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 )
 
 add_executable(world_model_racer ${WORLD_MODEL_SRCS})
