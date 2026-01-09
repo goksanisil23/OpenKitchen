@@ -30,3 +30,8 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 
 ##### [World Model with Vae & Rnn](/WorldModelVaeRnn/) :white_check_mark:
 
+
+# TODO:
+- Guided Cost Learning (Inverse RL)
+- Diffusion Policy
+- Flow Matching
