@@ -12,6 +12,10 @@ constexpr float kDeg2Rad{M_PI / 180.0F};
 constexpr int kLeftBarrierColor[4]{255, 0, 0, 255};
 constexpr int kRightBarrierColor[4]{0, 0, 255, 255};
 
+// clang-format off
+#define GOX_ASSERT(x) do { if(!(x)) std::terminate(); } while(0)
+// clang-format on
+
 struct Pixel
 {
     int x{};
@@ -92,4 +96,10 @@ struct Ray_
     float hit_x;
     float hit_y;
     bool  active{true}; // for crashed agents, used for early return in collision checker
+};
+
+struct Segment2d
+{
+    float x1, y1; // Start point
+    float x2, y2; // End point
 };

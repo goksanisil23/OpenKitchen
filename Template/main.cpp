@@ -76,6 +76,9 @@ int main(int argc, char **argv)
 
     Environment env(argv[1], createBaseAgentPtrs(agents));
 
+    // Alternatively, camera can be zoomed in to a specific agent
+    // env.visualizer_->setAgentToFollow(agents[0].get());
+
     const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
     const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
     for (auto &agent : agents)

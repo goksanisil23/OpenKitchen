@@ -9,6 +9,7 @@
 #include "CollisionChecker.h"
 #include "RaceTrack.h"
 #include "ScreenGrabber.h"
+#include "TrackSegments.h"
 #include "Visualizer.h"
 
 #include "raylib-cpp.hpp"
@@ -63,10 +64,13 @@ class Environment
 
   public:
     std::unique_ptr<RaceTrack>        race_track_;
+    std::unique_ptr<TrackSegments>    track_segments_;
     std::unique_ptr<env::Visualizer>  visualizer_;
     std::vector<Agent *>              agents_;
     std::vector<DisplacementStats>    displacement_stats_;
     std::unique_ptr<raylib::Image>    render_buffer_{nullptr};
     std::unique_ptr<CollisionChecker> collision_checker_{nullptr};
     std::unique_ptr<ScreenGrabber>    screen_grabber_{nullptr};
+
+    bool draw_rays_{false};
 };

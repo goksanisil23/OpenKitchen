@@ -43,15 +43,17 @@ Environment::Environment(const std::string          &race_track_path,
                          const std::vector<Agent *> &agents,
                          const bool                  draw_rays,
                          const bool                  hidden_window)
+    : draw_rays_(draw_rays)
 {
-    race_track_ = std::make_unique<RaceTrack>(race_track_path);
-    visualizer_ = std::make_unique<env::Visualizer>(hidden_window);
+    race_track_     = std::make_unique<RaceTrack>(race_track_path);
+    track_segments_ = std::make_unique<TrackSegments>(*race_track_);
+    visualizer_     = std::make_unique<env::Visualizer>(hidden_window);
 
-    // Initialize the collision checker with the framebuffer object ID
-    collision_checker_ = std::make_unique<CollisionChecker>(visualizer_->render_target_.texture.id, agents, draw_rays);
-    screen_grabber_    = std::make_unique<ScreenGrabber>(visualizer_->view_rt_.texture.id,
-                                                      visualizer_->render_target_.texture.width,
-                                                      visualizer_->render_target_.texture.height);
+    // Initialize the collision checker with track segments (vector-based collision)
+    collision_checker_ = std::make_unique<CollisionChecker>(
+        track_segments_->getDeviceSegments(), track_segments_->getNumSegments(), agents);
+
+    screen_grabber_ = std::make_unique<ScreenGrabber>(kScreenWidth, kScreenHeight);
 
     // Store pointers to the agents
     agents_ = agents;
@@ -123,7 +125,6 @@ void Environment::resetAgent(Agent     *agent,
 void Environment::step()
 {
     // -------- 1) Kinematics Update of Agents -------- //
-    // for (auto agent : agents_)
     for (uint16_t i{0}; i < agents_.size(); i++)
     {
         auto &agent              = agents_[i];
@@ -140,58 +141,11 @@ void Environment::step()
         }
     }
 
-    // -------- 2) Drawing static parts of the environment -------- //
-    visualizer_->activateDrawing();
-    {
-        env::Visualizer::shadeAreaBetweenCurves(
-            race_track_->right_bound_inner_, race_track_->right_bound_outer_, raylib::Color(0, 0, 255, 255));
-        env::Visualizer::shadeAreaBetweenCurves(
-            race_track_->left_bound_inner_, race_track_->left_bound_outer_, raylib::Color(255, 0, 0, 255));
-        env::Visualizer::shadeAreaBetweenCurves(
-            race_track_->left_bound_inner_, race_track_->right_bound_inner_, raylib::Color(0, 255, 0, 255));
-        // env::Visualizer::shadeAreaBetweenCurves(
-        // race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 0, 255, 255));
+    // -------- 2) Collision detection -------- //
+    collision_checker_->checkCollision();
 
-        // For continuous loop
-        if constexpr (env::kContinuousLoop)
-        {
-            env::Visualizer::shadeAreaBetweenCurves(
-                race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 255, 0, 255));
-            env::Visualizer::shadeAreaBetweenCurves(
-                std::vector<Vec2d>{race_track_->right_bound_inner_.front(), race_track_->right_bound_inner_.back()},
-                std::vector<Vec2d>{race_track_->right_bound_outer_.front(), race_track_->right_bound_outer_.back()},
-                raylib::Color(0, 0, 255, 255));
-            env::Visualizer::shadeAreaBetweenCurves(
-                std::vector<Vec2d>{race_track_->left_bound_inner_.front(), race_track_->left_bound_inner_.back()},
-                std::vector<Vec2d>{race_track_->left_bound_outer_.front(), race_track_->left_bound_outer_.back()},
-                raylib::Color(255, 0, 0, 255));
-        }
-        else
-        {
-            env::Visualizer::shadeAreaBetweenCurves(
-                race_track_->start_line_, race_track_->finish_line_, raylib::Color(0, 255, 0, 255));
-        }
-    }
-    visualizer_->disableDrawing();
-
-    // -------- 3) Direct render buffer manipulation for sensors -------- //
-    {
-        // We first check the collision before drawing any sensor or agents to avoid overlap
-        // NOTE: Sensor update needs to happen before drawing multiple agents since we emulate parallel simulators here so agents
-        // should NOT see each other's world.
-        collision_checker_->checkCollision();
-
-        visualizer_->activateDrawing(false);
-        for (auto &agent : agents_)
-        {
-            visualizer_->drawAgent(*agent);
-        }
-    }
-
-    visualizer_->disableDrawing();
-
-    // -------- 4) Render the final texture -------- //
-    visualizer_->render();
+    // -------- 3) Vector-based rendering -------- //
+    visualizer_->render(*race_track_, agents_, draw_rays_ ? collision_checker_.get() : nullptr);
 }
 
 bool Environment::isEnterPressed() const

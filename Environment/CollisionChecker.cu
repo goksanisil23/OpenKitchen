@@ -1,164 +1,81 @@
-#include <GL/glew.h>
-
-#include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 
-#include <chrono>
 #include <cmath>
 #include <iostream>
-#include <string>
 
 #include "CollisionChecker.h"
 
-__constant__ int kCudaLeftBarrierColor[4]  = {kLeftBarrierColor[0],
-                                              kLeftBarrierColor[1],
-                                              kLeftBarrierColor[2],
-                                              kLeftBarrierColor[3]};
-__constant__ int kCudaRightBarrierColor[4] = {kRightBarrierColor[0],
-                                              kRightBarrierColor[1],
-                                              kRightBarrierColor[2],
-                                              kRightBarrierColor[3]};
-
-__constant__ int kCudaScreenWidth  = kScreenWidth;
-__constant__ int kCudaScreenHeight = kScreenHeight;
-
-__device__ __forceinline__ bool isBarrierPixel(uchar4 data)
+__device__ bool raySegmentIntersect(const float ray_ox,
+                                    const float ray_oy,
+                                    const float ray_dx,
+                                    const float ray_dy,
+                                    const float seg_x1,
+                                    const float seg_y1,
+                                    const float seg_x2,
+                                    const float seg_y2,
+                                    const float ray_range,
+                                    float      *out_t)
 {
-    return ((data.x == static_cast<unsigned char>(kCudaLeftBarrierColor[0])) &&
-            (data.y == static_cast<unsigned char>(kCudaLeftBarrierColor[1])) &&
-            (data.z == static_cast<unsigned char>(kCudaLeftBarrierColor[2])) &&
-            (data.w == static_cast<unsigned char>(kCudaLeftBarrierColor[3]))) ||
-           ((data.x == static_cast<unsigned char>(kCudaRightBarrierColor[0])) &&
-            (data.y == static_cast<unsigned char>(kCudaRightBarrierColor[1])) &&
-            (data.z == static_cast<unsigned char>(kCudaRightBarrierColor[2])) &&
-            (data.w == static_cast<unsigned char>(kCudaRightBarrierColor[3])));
-}
+    const float seg_dx = seg_x2 - seg_x1;
+    const float seg_dy = seg_y2 - seg_y1;
+    const float denom  = ray_dx * seg_dy - ray_dy * seg_dx;
 
-__device__ __forceinline__ bool checkCollisionAndDrawRays(cudaSurfaceObject_t surface,
-                                                          Ray_               *rays,
-                                                          const int           ray_idx,
-                                                          const int           x,
-                                                          const int           y,
-                                                          const bool          draw_rays)
-{
-    uchar4 data;
-    int    flipped_y = kCudaScreenHeight - y - 1; // since cuda surface is flipped w.r.t raylib coordinates in y
-    surf2Dread(&data, surface, x * sizeof(uchar4), flipped_y);
+    if (fabsf(denom) < 1e-8F)
+        return false; // Parallel
 
-    if (isBarrierPixel(data))
+    const float t = ((seg_x1 - ray_ox) * seg_dy - (seg_y1 - ray_oy) * seg_dx) / denom;
+    const float s = ((seg_x1 - ray_ox) * ray_dy - (seg_y1 - ray_oy) * ray_dx) / denom;
+
+    if ((t >= 0.0F) && (t <= ray_range) && (s >= 0.0F) && (s <= 1.0F))
     {
-        rays[ray_idx].hit_x = x;
-        rays[ray_idx].hit_y = y;
+        *out_t = t;
         return true;
-    }
-
-    // Color the pixels along the ray, since they're not hit
-    if (draw_rays)
-    {
-        data.x = 255;
-        data.y = 255;
-        data.z = 255;
-        surf2Dwrite(data, surface, x * sizeof(uchar4), flipped_y);
     }
     return false;
 }
 
-__global__ void castRaysKernel(cudaSurfaceObject_t surface, Ray_ *rays, const int total_rays, const bool draw_rays)
+__global__ void castRaysToSegmentsKernel(Ray_            *rays,
+                                         const int        total_rays,
+                                         const Segment2d *segments,
+                                         const int        num_segments,
+                                         const float      ray_range)
 {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const int ray_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (ray_idx >= total_rays || !rays[ray_idx].active)
+        return;
 
-    if (idx < total_rays)
+    const float ray_dx = cosf(rays[ray_idx].angle);
+    const float ray_dy = sinf(rays[ray_idx].angle);
+    float       min_t  = ray_range;
+
+    for (int i = 0; i < num_segments; ++i)
     {
-        if (!rays[idx].active)
-            return;
-
-        int x0 = static_cast<int>(rays[idx].x);
-        int y0 = static_cast<int>(rays[idx].y);
-        int x1 = static_cast<int>(rays[idx].x + Agent::kSensorRange * cos(rays[idx].angle));
-        int y1 = static_cast<int>(rays[idx].y + Agent::kSensorRange * sin(rays[idx].angle));
-
-        auto dx = std::abs(x1 - x0);
-        auto dy = std::abs(y1 - y0);
-
-        int x = x0;
-        int y = y0;
-
-        int sx = (x0 > x1) ? -1 : 1;
-        int sy = (y0 > y1) ? -1 : 1;
-
-        // No hit
-        rays[idx].hit_x = x1;
-        rays[idx].hit_y = y1;
-
-        if (dx > dy)
+        float t;
+        if (raySegmentIntersect(rays[ray_idx].x,
+                                rays[ray_idx].y,
+                                ray_dx,
+                                ray_dy,
+                                segments[i].x1,
+                                segments[i].y1,
+                                segments[i].x2,
+                                segments[i].y2,
+                                min_t,
+                                &t))
         {
-            int err = dx / 2;
-            while (x != x1)
-            {
-                if (x >= 0 && x < kCudaScreenWidth && y >= 0 && y < kCudaScreenHeight)
-                // if (x >= 0 && y >= 0)
-                {
-                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
-                        break;
-
-                    err -= dy;
-                    if (err < 0)
-                    {
-                        y += sy;
-                        err += dx;
-                    }
-                    x += sx;
-                }
-                else
-                {
-                    // rays[idx].hit_dist = (x - x0) * (x - x0) + (y - y0) * (y - y0);
-                    break;
-                }
-            }
-        }
-        else
-        {
-            int err = dy / 2;
-            while (y != y1)
-            {
-                if (x >= 0 && x < kCudaScreenWidth && y >= 0 && y < kCudaScreenHeight)
-                // if (x >= 0 && y >= 0)
-                {
-                    if (checkCollisionAndDrawRays(surface, rays, idx, x, y, draw_rays))
-                        break;
-
-                    err -= dx;
-                    if (err < 0)
-                    {
-                        x += sx;
-                        err += dy;
-                    }
-                    y += sy;
-                }
-                else
-                {
-                    // rays[idx].hit_dist = (x - x0) * (x - x0) + (y - y0) * (y - y0);
-                    break;
-                }
-            }
+            min_t = t;
         }
     }
+
+    rays[ray_idx].hit_x = rays[ray_idx].x + min_t * ray_dx;
+    rays[ray_idx].hit_y = rays[ray_idx].y + min_t * ray_dy;
 }
 
 class CollisionChecker::Impl
 {
   public:
-    Impl(const unsigned int texture_id, const std::vector<Agent *> &agents, const bool draw_rays = true)
-        : draw_rays_(draw_rays)
+    Impl(const Segment2d *d_segments, size_t num_segments, const std::vector<Agent *> &agents)
+        : d_segments_(d_segments), num_segments_(num_segments)
     {
-        if (!glIsTexture(texture_id))
-        {
-            std::cerr << "Not a valid GL texture: " << texture_id << std::endl;
-        }
-
-        // Register OpenGL texture to CUDA
-        cudaGraphicsGLRegisterImage(
-            &cuda_resource_, texture_id, GL_TEXTURE_2D, cudaGraphicsRegisterFlagsSurfaceLoadStore);
         cudaStreamCreate(&stream_);
 
         agents_         = agents;
@@ -173,32 +90,27 @@ class CollisionChecker::Impl
         cudaFree(d_rays_);
         cudaFreeHost(h_rays_);
 
-        cudaGraphicsUnregisterResource(cuda_resource_);
         cudaStreamDestroy(stream_);
     }
 
     void checkCollisionImpl()
     {
-        // Map the resource (needs to occur whenever texture content changes)
-        cudaGraphicsMapResources(1, &cuda_resource_, 0);
-        cudaArray_t cuda_array;
-        cudaGraphicsSubResourceGetMappedArray(&cuda_array, cuda_resource_, 0, 0);
-
-        cudaResourceDesc resource_desc = {};
-        resource_desc.resType          = cudaResourceTypeArray;
-        resource_desc.res.array.array  = cuda_array;
-        cudaSurfaceObject_t surface;
-        cudaCreateSurfaceObject(&surface, &resource_desc);
-
-        runCollisionKernel(surface, stream_);
-
+        runCollisionKernel(stream_);
         cudaStreamSynchronize(stream_);
-        cudaDestroySurfaceObject(surface);
-        cudaGraphicsUnmapResources(1, &cuda_resource_, 0);
+    }
+
+    const Ray_ *getHostRays() const
+    {
+        return h_rays_;
+    }
+
+    size_t getNumRays() const
+    {
+        return num_total_rays_;
     }
 
   private:
-    void runCollisionKernel(cudaSurfaceObject_t surface, cudaStream_t stream)
+    void runCollisionKernel(cudaStream_t stream)
     {
         for (size_t agent_idx = 0; agent_idx < agents_.size(); ++agent_idx)
         {
@@ -220,8 +132,11 @@ class CollisionChecker::Impl
         constexpr dim3 threadsPerBlock(32);
         const dim3     blocksPerGrid((static_cast<int>(num_total_rays_) + threadsPerBlock.x - 1) / threadsPerBlock.x);
 
-        castRaysKernel<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(
-            surface, d_rays_, static_cast<int>(num_total_rays_), draw_rays_);
+        castRaysToSegmentsKernel<<<blocksPerGrid, threadsPerBlock, 0, stream>>>(d_rays_,
+                                                                                static_cast<int>(num_total_rays_),
+                                                                                d_segments_,
+                                                                                static_cast<int>(num_segments_),
+                                                                                Agent::kSensorRange);
         cudaGetLastError();
 
         cudaMemcpy(h_rays_, d_rays_, num_total_rays_ * sizeof(Ray_), cudaMemcpyDeviceToHost);
@@ -241,12 +156,8 @@ class CollisionChecker::Impl
                 float yTranslated = h_rays_[agent_idx * num_rays + i].hit_y - h_rays_[agent_idx * num_rays + i].y;
                 hit_pt_relative.x = xTranslated * cos(agent_rot_rad) - yTranslated * sin(agent_rot_rad);
                 hit_pt_relative.y = xTranslated * sin(agent_rot_rad) + yTranslated * cos(agent_rot_rad);
-                if (hit_pt_relative.squaredNorm() > (Agent::kSensorRange * Agent::kSensorRange))
-                {
-                    // Saturate to sensor range if exceeds due to pixel rounding
-                    hit_pt_relative.x = Agent::kSensorRange * cos(agents_[agent_idx]->sensor_ray_angles_[i]);
-                    hit_pt_relative.y = Agent::kSensorRange * sin(agents_[agent_idx]->sensor_ray_angles_[i]);
-                }
+                // Note: with vector intersection, we don't need to saturate to sensor range
+                // as the kernel already handles this properly
                 agent->sensor_hits_.push_back(hit_pt_relative);
                 if (hit_pt_relative.squaredNorm() < min_dist2)
                 {
@@ -270,16 +181,14 @@ class CollisionChecker::Impl
 
     size_t num_total_rays_;
 
-    cudaGraphicsResource_t cuda_resource_;
-    cudaStream_t           stream_;
+    const Segment2d *d_segments_;
+    size_t           num_segments_;
 
-    const bool draw_rays_{true};
+    cudaStream_t stream_;
 };
 
-CollisionChecker::CollisionChecker(const unsigned int          texture_id,
-                                   const std::vector<Agent *> &agents,
-                                   const bool                  draw_rays)
-    : impl_(std::make_unique<Impl>(texture_id, agents, draw_rays))
+CollisionChecker::CollisionChecker(const Segment2d *d_segments, size_t num_segments, const std::vector<Agent *> &agents)
+    : impl_(std::make_unique<Impl>(d_segments, num_segments, agents))
 {
 }
 
@@ -288,4 +197,14 @@ CollisionChecker::~CollisionChecker() = default;
 void CollisionChecker::checkCollision()
 {
     impl_->checkCollisionImpl();
+}
+
+const Ray_ *CollisionChecker::getHostRays() const
+{
+    return impl_->getHostRays();
+}
+
+size_t CollisionChecker::getNumRays() const
+{
+    return impl_->getNumRays();
 }

@@ -19,7 +19,7 @@ class ScreenGrabber
         }
     };
 
-    ScreenGrabber(const unsigned int id, const int width, const int height);
+    ScreenGrabber(const int width, const int height);
     ~ScreenGrabber();
 
     void saveRenderTargetToFile(const std::string &filename);

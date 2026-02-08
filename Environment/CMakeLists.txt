@@ -31,6 +31,7 @@ add_library(CollisionChecker STATIC
     ScreenGrabber.cu
     CollisionChecker.cpp
     CollisionChecker.cu
+    TrackSegments.cu
 )
 set_target_properties(CollisionChecker PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON

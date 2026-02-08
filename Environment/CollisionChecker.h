@@ -3,15 +3,20 @@
 #include <memory>
 
 #include "Agent.h"
+#include "Typedefs.h"
 
 class CollisionChecker
 {
   public:
-    CollisionChecker(const unsigned int texture_id, const std::vector<Agent *> &agents, const bool draw_rays = true);
+    CollisionChecker(const Segment2d *d_segments, size_t num_segments, const std::vector<Agent *> &agents);
     ~CollisionChecker();
 
     // Returns true if a collision is detected.
     void checkCollision();
+
+    // Get ray data for visualization (call after checkCollision)
+    const Ray_ *getHostRays() const;
+    size_t      getNumRays() const;
 
   private:
     class Impl;

@@ -54,7 +54,7 @@ float RaceTrack::getDistanceToLaneCenter(const Vec2d &query_pt) const
 {
     float  min_distance = std::numeric_limits<float>::max();
     float  distance;
-    size_t min_dist_idx;
+    size_t min_dist_idx{};
     for (size_t i{0}; i < track_data_points_.x_m.size(); i++)
     {
         distance = query_pt.distanceSquared({track_data_points_.x_m[i], track_data_points_.y_m[i]});

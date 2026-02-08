@@ -13,6 +13,9 @@
 #include "IpcMsgs.h"
 #include "Typedefs.h"
 
+class RaceTrack;
+class CollisionChecker;
+
 namespace env
 {
 const raylib::Color kDrivableAreaCol{0, 255, 0, 255};
@@ -36,7 +39,9 @@ class Visualizer
 
     void disableDrawing();
 
-    void render();
+    void render(const RaceTrack            &track,
+                const std::vector<Agent *> &agents,
+                const CollisionChecker     *collision_checker = nullptr);
 
     void close();
 

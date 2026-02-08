@@ -1,6 +1,10 @@
 #include "Visualizer.h"
 
 #include <iostream>
+
+#include "CollisionChecker.h"
+#include "RaceTrack.h"
+
 namespace env
 {
 namespace
@@ -81,61 +85,6 @@ void Visualizer::drawTrackTitle(const std::string &track_name)
     DrawTextEx(custom_font, track_name.c_str(), {kScreenWidth / 2, 10}, 25, 3, ORANGE);
 }
 
-void Visualizer::render()
-{
-
-    if (!agent_to_follow_)
-    {
-        window_->BeginDrawing();
-        ClearBackground(BLACK);
-        render_target_.GetTexture().Draw({0.F,
-                                          0.F,
-                                          static_cast<float>(render_target_.texture.width),
-                                          static_cast<float>(-render_target_.texture.height)},
-                                         {0.F, 0.F},
-                                         WHITE);
-        window_->DrawFPS();
-        if (user_draw_callback_)
-            user_draw_callback_();
-        window_->EndDrawing();
-    }
-    else
-    {
-        camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
-        // camera_.rotation = agent_to_follow_->rot_;
-
-        // Use a separate view buffer to save the image rendered from the camera view
-        // TODO: Remove this when image saving is not needed
-        {
-            view_rt_.BeginMode();
-            window_->ClearBackground(BLACK);
-            BeginMode2D(camera_);
-            render_target_.GetTexture().Draw(
-                {0.F, 0.F, (float)render_target_.texture.width, (float)-render_target_.texture.height},
-                {0.F, 0.F},
-                WHITE);
-            EndMode2D();
-            view_rt_.EndMode();
-        }
-
-        window_->BeginDrawing();
-        ClearBackground(BLACK);
-        BeginMode2D(camera_);
-        render_target_.GetTexture().Draw({0.F,
-                                          0.F,
-                                          static_cast<float>(render_target_.texture.width),
-                                          static_cast<float>(-render_target_.texture.height)},
-                                         {0.F, 0.F},
-                                         WHITE);
-
-        EndMode2D();
-        window_->DrawFPS();
-        if (user_draw_callback_)
-            user_draw_callback_();
-        window_->EndDrawing();
-    }
-}
-
 void Visualizer::disableDrawing()
 {
     render_target_.EndMode();
@@ -205,6 +154,78 @@ void Visualizer::drawArrow(raylib::Vector2 start, raylib::Vector2 end)
                  arrow_head_pos + (-normalized_dir.Rotate(45)) * arrow_head_size,
                  arrow_head_pos + (-normalized_dir.Rotate(-45)) * arrow_head_size,
                  raylib::Color::Yellow());
+}
+
+void Visualizer::render(const RaceTrack            &track,
+                        const std::vector<Agent *> &agents,
+                        const CollisionChecker     *collision_checker)
+{
+    window_->BeginDrawing();
+    ClearBackground(BLACK);
+
+    // Only use camera transform when following an agent (for zoomed view)
+    if (agent_to_follow_)
+    {
+        camera_.target = {agent_to_follow_->pos_.x, agent_to_follow_->pos_.y};
+        BeginMode2D(camera_);
+    }
+
+    rlDisableBackfaceCulling();
+
+    // Draw track geometry (vector-based, inside camera transform for crisp zoom)
+    shadeAreaBetweenCurves(track.right_bound_inner_, track.right_bound_outer_, raylib::Color(0, 0, 255, 255));
+    shadeAreaBetweenCurves(track.left_bound_inner_, track.left_bound_outer_, raylib::Color(255, 0, 0, 255));
+    shadeAreaBetweenCurves(track.left_bound_inner_, track.right_bound_inner_, raylib::Color(0, 255, 0, 255));
+
+    // For continuous loop
+    if constexpr (kContinuousLoop)
+    {
+        shadeAreaBetweenCurves(track.start_line_, track.finish_line_, raylib::Color(0, 255, 0, 255));
+        shadeAreaBetweenCurves(std::vector<Vec2d>{track.right_bound_inner_.front(), track.right_bound_inner_.back()},
+                               std::vector<Vec2d>{track.right_bound_outer_.front(), track.right_bound_outer_.back()},
+                               raylib::Color(0, 0, 255, 255));
+        shadeAreaBetweenCurves(std::vector<Vec2d>{track.left_bound_inner_.front(), track.left_bound_inner_.back()},
+                               std::vector<Vec2d>{track.left_bound_outer_.front(), track.left_bound_outer_.back()},
+                               raylib::Color(255, 0, 0, 255));
+    }
+    else
+    {
+        shadeAreaBetweenCurves(track.start_line_, track.finish_line_, raylib::Color(0, 255, 0, 255));
+    }
+
+    // Draw sensor rays if collision checker provided
+    if (collision_checker)
+    {
+        const Ray_  *rays     = collision_checker->getHostRays();
+        const size_t num_rays = collision_checker->getNumRays();
+        for (size_t i = 0; i < num_rays; ++i)
+        {
+            if (rays[i].active)
+            {
+                DrawLine(static_cast<int>(rays[i].x),
+                         static_cast<int>(rays[i].y),
+                         static_cast<int>(rays[i].hit_x),
+                         static_cast<int>(rays[i].hit_y),
+                         WHITE);
+            }
+        }
+    }
+
+    // Draw agents
+    for (auto *agent : agents)
+    {
+        drawAgent(*agent);
+    }
+
+    if (agent_to_follow_)
+    {
+        EndMode2D();
+    }
+
+    window_->DrawFPS();
+    if (user_draw_callback_)
+        user_draw_callback_();
+    window_->EndDrawing();
 }
 
 } // namespace env
