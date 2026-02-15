@@ -23,7 +23,7 @@ transform = transforms.Compose(
 )
 
 IMAGE_DIR = Path(
-    "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/test_dir"
+    "/home/goksan/OpenKitchen/FieldNavigators/collect_data/build/SaoPaulo_random/"
 )
 image_paths = sorted(
     p

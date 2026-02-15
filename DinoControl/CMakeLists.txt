@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 project(dino_control)
 
 find_package(Torch REQUIRED)
-find_package(OpenCV REQUIRED)
+# find_package(OpenCV REQUIRED)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 set(COMPILER_FLAGS -Wall -std=c++17 -g -O2)
@@ -19,15 +19,15 @@ set(DINO_CTRL_SRCS
 
 add_executable(dino_control ${DINO_CTRL_SRCS})
 
-target_include_directories(dino_control SYSTEM PRIVATE 
+target_include_directories(dino_control SYSTEM PRIVATE
     ${RAYLIB_CPP_INCLUDE_DIR}
     ${RAYLIB_INCLUDE_DIR}
     ${SHARED_MEM_LIB_DIR}
     ${EIGEN_DIR}
-    ${OpenCV_INCLUDE_DIRS}
+    # ${OpenCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(dino_control "${TORCH_LIBRARIES}" pthread raylib dl rt Environment ${OpenCV_LIBS})
+target_link_libraries(dino_control "${TORCH_LIBRARIES}" pthread raylib dl rt Environment)
 target_link_directories(dino_control PRIVATE ${RAYLIB_LINK_DIR})
 
 target_include_directories(dino_control PUBLIC

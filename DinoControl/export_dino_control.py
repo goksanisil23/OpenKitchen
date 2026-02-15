@@ -20,7 +20,7 @@ class Agent(nn.Module):
 
 
 def main():
-    WEIGHTS_PATH = "agent_model_epoch_31.pth"
+    WEIGHTS_PATH = "agent_model_epoch_50.pth"
     EXPORT_PATH = "agent_model_scripted.pt"
 
     device = torch.device("cpu")

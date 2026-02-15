@@ -1,12 +1,7 @@
-#include <fstream>
 #include <iostream>
-#include <memory>
-#include <opencv2/opencv.hpp>
-#include <sstream>
-#include <string>
+// #include <opencv2/opencv.hpp>
 #include <torch/script.h>
 #include <torch/torch.h>
-#include <vector>
 
 #include "Environment/Environment.h"
 
@@ -28,7 +23,7 @@ class DinoControlAgent : public Agent
 
     void setupModel()
     {
-        dino_controller_model_ = torch::jit::load("../../dino/agent_model_scripted.pt");
+        dino_controller_model_ = torch::jit::load("../agent_model_scripted.pt");
         dino_controller_model_.to(device_);
         dino_controller_model_.eval();
     }

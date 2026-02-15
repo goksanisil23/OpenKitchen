@@ -23,6 +23,7 @@ Some end-to-end learning-based algorithms displaying sensing-to-action, on a lig
 ##### [DDPG with 2D Raycast](/RLRacers/DDPG) :white_check_mark:
 
 ##### [Behavioral Cloning with CNN: BEV image -> Action](/BehavioralCloning) :white_check_mark:
+##### [Behavioral Cloning with Dino: BEV image -> Action](/BehavioralCloning) :white_check_mark:
 
 ##### [Imitation Learning With Transformer: 2D Raycast -> Action](/ImitationLearningTransformer) :white_check_mark:
 

@@ -16,13 +16,13 @@ import numpy as np
 # 1. HARDCODED PARAMETERS
 # ==========================================
 DATA_DIR = (
-    "/home/s0001734/Downloads/OpenKitchen/FieldNavigators/collect_data/build/total"
+    "/home/goksan/OpenKitchen/FieldNavigators/collect_data/build/SaoPaulo_random/"
 )
 
 # MODEL_NAME = "vit_small_patch16_224.dino"
 MODEL_NAME = "vit_small_patch8_224.dino"
 # MODEL_NAME = "openvision-vit-tiny-patch8-224"
-BATCH_SIZE = 256
+BATCH_SIZE = 512  # 256
 LEARNING_RATE = 1e-4
 EPOCHS = 50
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
