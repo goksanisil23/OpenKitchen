@@ -50,17 +50,17 @@ void Visualizer::drawAgent(Agent &agent)
     raylib::Color color = (agent.crashed_)
                               ? raylib::Color((Color){253, 249, 0, 150})
                               : raylib::Color(agent.color_[0], agent.color_[1], agent.color_[2], agent.color_[3]);
-    DrawCircle(agent.pos_.x, agent.pos_.y, agent.radius_, color);
+    const Vector2 center{agent.pos_.x, agent.pos_.y};
+    DrawCircleV(center, agent.radius_, color);
 
     // Draw heading line for robot
     if (agent.draw_agent_heading_)
     {
         const float   rot_rad = kDeg2Rad * agent.rot_;
-        const Vector2 center{agent.pos_.x, agent.pos_.y};
         const float   r = agent.radius_;
 
         // Front half (facing heading)
-        DrawCircleSector(center, r, (rot_rad * RAD2DEG) - 90, (rot_rad * RAD2DEG) + 90, 8, raylib::Color::White());
+        DrawCircleSector(center, r, (rot_rad * RAD2DEG) - 90, (rot_rad * RAD2DEG) + 90, 36, raylib::Color::White());
     }
     //     // Draw heading line for robot
     // if (agent.draw_agent_heading_)
