@@ -2,7 +2,7 @@
 Some end-to-end learning-based algorithms displaying sensing-to-action, on a lightweight 2D environment built on Raylib.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/goksanisil23/OpenKitchen/main/Template/example.png" width="250" />
+  <img src="DinoControl/example.png" width=600" />
 </p>
 
 ##### [Colony Learning via Evolution on a Shallow MLP](/EvolutionaryRacer) :white_check_mark:
