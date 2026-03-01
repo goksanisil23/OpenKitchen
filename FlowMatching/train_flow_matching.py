@@ -83,8 +83,8 @@ def build_argparser():
         help="Where to save model checkpoints",
     )
     parser.add_argument("--image-size", type=int, default=128)
-    parser.add_argument("--batch-size", type=int, default=64)
-    parser.add_argument("--epochs", type=int, default=30)
+    parser.add_argument("--batch-size", type=int, default=512)
+    parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=0.0)
     parser.add_argument("--val-ratio", type=float, default=0.1)

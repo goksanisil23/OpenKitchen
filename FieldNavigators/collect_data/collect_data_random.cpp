@@ -15,9 +15,10 @@
 #include "../PotentialFieldAgent.hpp"
 #include "Environment/Environment.h"
 
-static constexpr std::string_view kTrackName = "SaoPaulo.csv";
+// static constexpr std::string_view kTrackName = "SaoPaulo.csv";
+static constexpr std::string_view kTrackName = "";
 
-constexpr bool kHiddenWindow{false};
+constexpr bool kHiddenWindow{true};
 
 constexpr size_t kNumGoalsBeforeReset{200};
 constexpr size_t kTrajLength{10};

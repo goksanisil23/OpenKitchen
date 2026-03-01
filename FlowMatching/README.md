@@ -1,6 +1,9 @@
 # Conditional Flow Matching for BEV -> Action
 
-This repository contains a simple, readable implementation of conditional flow matching:
+> [!NOTE]
+> Using training data from **all tracks** that are obtained via FieldNavigators/collect_data/collect_data_random is sufficient to train agents that can completely navigate the tracks.
+
+Coonditional flow matching implementaion:
 - Condition: BEV image (`.png`)
 - Target: single-step action (`throttle`, `steering`) from paired `.txt`
 
@@ -22,10 +25,10 @@ Action txt file should contain one line with two numbers:
 
 ```bash
 python train_flow_matching.py \
-  --data-dir /path/to/your/data \
+  --data-dir ../FieldNavigators/collect_data/build/measurements_and_actions_random/ \
   --output-dir checkpoints \
-  --epochs 30 \
-  --batch-size 64
+  --epochs 100 \
+  --batch-size 512
 ```
 
 Outputs:
@@ -49,7 +52,7 @@ This prints:
 - normalized action (`throttle_norm`, `steering_norm`)
 - denormalized physical action (`throttle`, `steering`)
 
-## Export Scripted Model (for C++ later)
+## Export Scripted Model (for C++ inference)
 
 ```bash
 python export_scripted_model.py \
@@ -62,6 +65,13 @@ The exporter:
 - creates a TorchScript model
 - verifies scripted output matches original model output on random test batches
 - saves `policy_scripted.pt`
+ 
+## Run the agent in closed loop with the simulator
+```bash
+source build.sh
+cd build
+./flow_control ../../tracks/Monza.csv ../checkpoints/scripted.pt 128
+```
 
 ## Main files
 

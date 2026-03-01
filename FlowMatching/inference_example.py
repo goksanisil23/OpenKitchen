@@ -3,7 +3,11 @@ from pathlib import Path
 
 import torch
 
-from flow_matching_model import ActionNormalizer, ConditionalFlowMatchingPolicy, preprocess_bev_image
+from flow_matching_model import (
+    ActionNormalizer,
+    ConditionalFlowMatchingPolicy,
+    preprocess_bev_image,
+)
 
 
 @torch.no_grad()
@@ -24,10 +28,21 @@ def sample_action(model, image_tensor, num_steps, device):
 
 
 def build_argparser():
-    parser = argparse.ArgumentParser(description="Run inference with trained conditional flow matching policy")
-    parser.add_argument("--checkpoint", type=str, required=True, help="Path to best.pt or last.pt")
-    parser.add_argument("--image", type=str, required=True, help="Path to a BEV image (.png)")
-    parser.add_argument("--num-steps", type=int, default=32, help="Euler integration steps for ODE sampling")
+    parser = argparse.ArgumentParser(
+        description="Run inference with trained conditional flow matching policy"
+    )
+    parser.add_argument(
+        "--checkpoint", type=str, required=True, help="Path to best.pt or last.pt"
+    )
+    parser.add_argument(
+        "--image", type=str, required=True, help="Path to a BEV image (.png)"
+    )
+    parser.add_argument(
+        "--num-steps",
+        type=int,
+        default=32,
+        help="Euler integration steps for ODE sampling",
+    )
     parser.add_argument("--seed", type=int, default=7)
     return parser
 
@@ -55,10 +70,14 @@ def main():
     ).to(device)
     model.load_state_dict(ckpt["model_state_dict"])
 
-    image_tensor = preprocess_bev_image(Path(args.image), image_size=config.get("image_size", 128)).unsqueeze(0)
+    image_tensor = preprocess_bev_image(
+        Path(args.image), image_size=config.get("image_size", 128)
+    ).unsqueeze(0)
     image_tensor = image_tensor.to(device)
 
-    action_norm = sample_action(model, image_tensor=image_tensor, num_steps=args.num_steps, device=device)
+    action_norm = sample_action(
+        model, image_tensor=image_tensor, num_steps=args.num_steps, device=device
+    )
     action_norm = action_norm.squeeze(0).cpu().clamp(-1.0, 1.0)
 
     throttle_norm = float(action_norm[0])

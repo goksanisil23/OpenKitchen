@@ -90,10 +90,11 @@ class BEVActionDataset(Dataset):
     def _build_index(self) -> List[Tuple[Path, Path]]:
         txt_files = sorted(self.data_dir.glob("*.txt"))
         samples = []
-        for txt_path in txt_files:
-            png_path = txt_path.with_suffix(".png")
-            if png_path.exists():
-                samples.append((png_path, txt_path))
+        for i, txt_path in enumerate(txt_files):
+            if i % 10 == 0:
+                png_path = txt_path.with_suffix(".png")
+                if png_path.exists():
+                    samples.append((png_path, txt_path))
 
         if not samples:
             raise RuntimeError(
