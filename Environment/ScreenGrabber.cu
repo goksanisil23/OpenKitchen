@@ -11,6 +11,44 @@
 
 namespace
 {
+constexpr int kDownscaleFactor = 4;
+
+void downsample(const uint8_t *src,
+                const int      src_w,
+                const int      src_h,
+                std::vector<uint8_t> &dst,
+                const int      factor)
+{
+    const int dst_w = src_w / factor;
+    const int dst_h = src_h / factor;
+    const int area  = factor * factor;
+    dst.resize(static_cast<size_t>(dst_w) * dst_h * 4);
+
+    for (int y = 0; y < dst_h; ++y)
+    {
+        for (int x = 0; x < dst_w; ++x)
+        {
+            uint32_t r = 0, g = 0, b = 0, a = 0;
+            for (int dy = 0; dy < factor; ++dy)
+            {
+                for (int dx = 0; dx < factor; ++dx)
+                {
+                    const uint8_t *p = src + (static_cast<size_t>(y * factor + dy) * src_w + (x * factor + dx)) * 4;
+                    r += p[0];
+                    g += p[1];
+                    b += p[2];
+                    a += p[3];
+                }
+            }
+            uint8_t *d = dst.data() + (static_cast<size_t>(y) * dst_w + x) * 4;
+            d[0]       = static_cast<uint8_t>(r / area);
+            d[1]       = static_cast<uint8_t>(g / area);
+            d[2]       = static_cast<uint8_t>(b / area);
+            d[3]       = static_cast<uint8_t>(a / area);
+        }
+    }
+}
+
 void writePNG(const char *path, const unsigned char *rgba, int w, int h, bool flip_y = true)
 {
     static bool fpng_initialized = false;
@@ -46,17 +84,24 @@ class ScreenGrabber::Impl
 
     ~Impl() = default;
 
+    void captureRenderedFrame()
+    {
+        glReadBuffer(GL_BACK);
+        glReadPixels(0, 0, width_, height_, GL_RGBA, GL_UNSIGNED_BYTE, host_buffer_.data());
+    }
+
     void saveRenderTargetToFile(const std::string &filename)
     {
-        // Read pixels from OpenGL framebuffer (screen)
-        captureScreen();
-        // Flip Y because OpenGL has origin at bottom-left, but images have origin at top-left
-        writePNG(filename.c_str(), host_buffer_.data(), width_, height_, true);
+        downsample(host_buffer_.data(), width_, height_, downsampled_buffer_, kDownscaleFactor);
+        writePNG(filename.c_str(),
+                 downsampled_buffer_.data(),
+                 width_ / kDownscaleFactor,
+                 height_ / kDownscaleFactor,
+                 true);
     }
 
     std::vector<uint8_t> getRenderTargetHost()
     {
-        captureScreen();
         return host_buffer_;
     }
 
@@ -67,7 +112,6 @@ class ScreenGrabber::Impl
 
     void getRenderTargetDevice(void *dst, size_t dst_pitch)
     {
-        captureScreen();
         // Copy row by row from host buffer to device
         const size_t row_bytes = render_target_info_.row_bytes();
         for (int y = 0; y < height_; ++y)
@@ -80,17 +124,11 @@ class ScreenGrabber::Impl
     }
 
   private:
-    void captureScreen()
-    {
-        // Use OpenGL to read from the default framebuffer
-        glReadPixels(0, 0, width_, height_, GL_RGBA, GL_UNSIGNED_BYTE, host_buffer_.data());
-    }
-
-  private:
     const int width_;
     const int height_;
 
     std::vector<uint8_t> host_buffer_;
+    std::vector<uint8_t> downsampled_buffer_;
 
     const ScreenGrabber::RenderTargetInfo render_target_info_;
 };
@@ -100,6 +138,11 @@ ScreenGrabber::ScreenGrabber(const int width, const int height) : impl_(std::mak
 }
 
 ScreenGrabber::~ScreenGrabber() = default;
+
+void ScreenGrabber::captureRenderedFrame()
+{
+    impl_->captureRenderedFrame();
+}
 
 void ScreenGrabber::saveRenderTargetToFile(const std::string &filename)
 {

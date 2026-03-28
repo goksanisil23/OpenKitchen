@@ -4,6 +4,7 @@
 
 #include "CollisionChecker.h"
 #include "RaceTrack.h"
+#include "ScreenGrabber.h"
 
 namespace env
 {
@@ -27,10 +28,6 @@ Visualizer::Visualizer(const bool hidden_window)
     window_ = std::make_unique<raylib::Window>(kScreenWidth, kScreenHeight, "");
     window_->SetPosition(40, 20);
 
-    // We draw in this texture manner since we want to get pixel values
-    render_target_ = LoadRenderTexture(kScreenWidth, kScreenHeight);
-    view_rt_       = LoadRenderTexture(kScreenWidth, kScreenHeight);
-
     camera_.offset =
         Vector2{window_->GetWidth() / 2.0f, window_->GetHeight() / 2.0f}; // Center the camera view in the window
     camera_.rotation = 0.0f;
@@ -39,7 +36,6 @@ Visualizer::Visualizer(const bool hidden_window)
 
 void Visualizer::activateDrawing(bool const clear_background)
 {
-    render_target_.BeginMode();
     rlDisableBackfaceCulling();
     if (clear_background)
         window_->ClearBackground(BLACK);
@@ -87,12 +83,10 @@ void Visualizer::drawTrackTitle(const std::string &track_name)
 
 void Visualizer::disableDrawing()
 {
-    render_target_.EndMode();
 }
 
 void Visualizer::close()
 {
-    // UnloadRenderTexture(render_target_);
     window_->Close();
 }
 
@@ -158,7 +152,8 @@ void Visualizer::drawArrow(raylib::Vector2 start, raylib::Vector2 end)
 
 void Visualizer::render(const RaceTrack            &track,
                         const std::vector<Agent *> &agents,
-                        const CollisionChecker     *collision_checker)
+                        const CollisionChecker     *collision_checker,
+                        ScreenGrabber              *screen_grabber)
 {
     window_->BeginDrawing();
     ClearBackground(BLACK);
@@ -225,6 +220,10 @@ void Visualizer::render(const RaceTrack            &track,
     window_->DrawFPS();
     if (user_draw_callback_)
         user_draw_callback_();
+    if (screen_grabber != nullptr)
+    {
+        screen_grabber->captureRenderedFrame();
+    }
     window_->EndDrawing();
 }
 

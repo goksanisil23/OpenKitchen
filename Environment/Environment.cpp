@@ -53,8 +53,6 @@ Environment::Environment(const std::string          &race_track_path,
     collision_checker_ = std::make_unique<CollisionChecker>(
         track_segments_->getDeviceSegments(), track_segments_->getNumSegments(), agents);
 
-    screen_grabber_ = std::make_unique<ScreenGrabber>(kScreenWidth, kScreenHeight);
-
     // Store pointers to the agents
     agents_ = agents;
 
@@ -145,7 +143,15 @@ void Environment::step()
     collision_checker_->checkCollision();
 
     // -------- 3) Vector-based rendering -------- //
-    visualizer_->render(*race_track_, agents_, draw_rays_ ? collision_checker_.get() : nullptr);
+    visualizer_->render(*race_track_, agents_, draw_rays_ ? collision_checker_.get() : nullptr, screen_grabber_.get());
+}
+
+void Environment::EnableScreenGrabber()
+{
+    if (screen_grabber_ == nullptr)
+    {
+        screen_grabber_ = std::make_unique<ScreenGrabber>(kScreenWidth, kScreenHeight);
+    }
 }
 
 bool Environment::isEnterPressed() const
@@ -175,5 +181,27 @@ bool Environment::isEnterPressed() const
 
 void Environment::saveImage(const std::string &filename) const
 {
+    if (screen_grabber_ == nullptr)
+    {
+        throw std::runtime_error("Screen grabber is not enabled. Call EnableScreenGrabber() first.");
+    }
     screen_grabber_->saveRenderTargetToFile(filename);
+}
+
+std::vector<uint8_t> Environment::getRenderTargetHost() const
+{
+    if (screen_grabber_ == nullptr)
+    {
+        throw std::runtime_error("Screen grabber is not enabled. Call EnableScreenGrabber() first.");
+    }
+    return screen_grabber_->getRenderTargetHost();
+}
+
+ScreenGrabber::RenderTargetInfo Environment::getRenderTargetInfo() const
+{
+    if (screen_grabber_ == nullptr)
+    {
+        throw std::runtime_error("Screen grabber is not enabled. Call EnableScreenGrabber() first.");
+    }
+    return screen_grabber_->getRenderTargetInfo();
 }

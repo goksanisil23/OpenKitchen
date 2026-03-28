@@ -23,6 +23,7 @@ class BoundEnv
     {
         agents_.push_back(std::make_unique<PythonControlledAgent>(Vec2d{0, 0}, 0, 0));
         env_ = std::make_unique<Environment>(race_track_path, createBaseAgentPtrs(agents_), draw_rays, hidden_window);
+        env_->EnableScreenGrabber();
 
         // Place the agent at the starting position
         // const auto start_idx = RaceTrack::kStartingIdx;

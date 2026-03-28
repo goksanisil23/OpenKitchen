@@ -15,6 +15,7 @@
 
 class RaceTrack;
 class CollisionChecker;
+class ScreenGrabber;
 
 namespace env
 {
@@ -41,7 +42,8 @@ class Visualizer
 
     void render(const RaceTrack            &track,
                 const std::vector<Agent *> &agents,
-                const CollisionChecker     *collision_checker = nullptr);
+                const CollisionChecker     *collision_checker = nullptr,
+                ScreenGrabber              *screen_grabber    = nullptr);
 
     void close();
 
@@ -54,14 +56,11 @@ class Visualizer
   public:
     raylib::Camera2D                camera_;
     std::unique_ptr<raylib::Window> window_;
-    raylib::RenderTexture           render_target_;
-    raylib::RenderTexture           view_rt_;
 
     const Agent *agent_to_follow_{nullptr};
 
     std::function<void()> user_draw_callback_{nullptr};
 
-    // Q<ImageMsg<kScreenWidth, kScreenHeight>, 4> *q_; // shared memory object
 };
 
 } // namespace env

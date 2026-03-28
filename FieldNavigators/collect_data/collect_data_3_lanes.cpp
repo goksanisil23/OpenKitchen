@@ -211,6 +211,7 @@ int main(int argc, char **argv)
         agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
 
         env.visualizer_->setAgentToFollow(agent.get());
+        env.EnableScreenGrabber();
 
         size_t goal_index = 0;
         size_t end_idx    = env.race_track_->track_data_points_.x_m.size() - 1;

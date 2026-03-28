@@ -118,6 +118,7 @@ int main(int argc, char **argv)
     constexpr bool kDrawRays{false};
     constexpr bool kHideWindow{false};
     Environment    env(argv[1], createBaseAgentPtrs(agents), kDrawRays, kHideWindow);
+    env.EnableScreenGrabber();
 
     env.visualizer_->setAgentToFollow(agents[0].get());
 

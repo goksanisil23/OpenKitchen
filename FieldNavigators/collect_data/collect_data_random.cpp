@@ -20,7 +20,7 @@ static constexpr std::string_view kTrackName = "";
 
 constexpr bool kHiddenWindow{true};
 
-constexpr size_t kNumGoalsBeforeReset{200};
+constexpr size_t kNumGoalsBeforeReset{50};
 constexpr size_t kTrajLength{10};
 
 constexpr bool kResetAgentsRandomly{true};
@@ -63,25 +63,34 @@ class DataCollectorAgent : public PotFieldAgent
             std::clamp(current_action_.steering_delta, -kSteeringAngleClampDeg, kSteeringAngleClampDeg);
     }
 
-    void saveMeasurement(const std::string &track_name, Environment &env)
+    static std::string buildFilePrefix(const std::string &directory,
+                                       const std::string &track_name,
+                                       const size_t       episode_id,
+                                       const size_t       step_id)
     {
-        std::string filename;
+        std::ostringstream ss;
+        ss << directory << "/"
+           << "birdseye_" << track_name << "_ep" << std::setw(4) << std::setfill('0') << episode_id << "_step"
+           << std::setw(4) << std::setfill('0') << step_id;
+        return ss.str();
+    }
+
+    void saveMeasurement(const std::string &track_name, const size_t episode_id, const size_t step_id, Environment &env)
+    {
+        const std::string filename = buildFilePrefix(directory_, track_name, episode_id, step_id);
         if constexpr (kMeasurementMode == MeasurementMode::BirdseyeView)
         {
             if (ctr_ % kBirdseyeSavePeriod == 0)
             {
-                filename = directory_ + "/" + "birdseye_" + track_name + "_" + std::to_string(ctr_) + ".txt";
-                std::ofstream out{filename};
+                std::ofstream out{filename + ".txt"};
                 out << current_action_.throttle_delta << " " << current_action_.steering_delta;
                 out.close();
-                filename.replace(filename.size() - 4, 4, ".png");
-                env.saveImage(filename);
+                env.saveImage(filename + ".png");
             }
         }
         else if (kMeasurementMode == MeasurementMode::Laser2d)
         {
-            filename = directory_ + "/" + "laser2d_" + track_name + "_" + std::to_string(ctr_) + ".txt";
-            std::ofstream out{filename};
+            std::ofstream out{filename + ".txt"};
             for (const auto &hit : sensor_hits_)
             {
                 out << hit.x << " " << hit.y << std::endl;
@@ -96,6 +105,16 @@ class DataCollectorAgent : public PotFieldAgent
         ctr_++;
     }
 
+    void removeEpisodeFiles(const std::string &track_name, const size_t episode_id, const size_t num_steps)
+    {
+        for (size_t s = 0; s < num_steps; ++s)
+        {
+            const std::string base = buildFilePrefix(directory_, track_name, episode_id, s);
+            std::filesystem::remove(base + ".txt");
+            std::filesystem::remove(base + ".png");
+        }
+    }
+
   public:
     const std::string directory_{kTrackName.empty() ? "measurements_and_actions_random"
                                                     : (std::string(kTrackName.substr(0, kTrackName.find_last_of('.'))) +
@@ -105,8 +124,8 @@ class DataCollectorAgent : public PotFieldAgent
 
 size_t getGoalPointIdx(const DataCollectorAgent &agent, const Environment &env)
 {
-    size_t current_idx = env.race_track_->findNearestTrackIndexBruteForce({agent.pos_.x, agent.pos_.y});
-    size_t goal_index =
+    const size_t current_idx = env.race_track_->findNearestTrackIndexBruteForce({agent.pos_.x, agent.pos_.y});
+    const size_t goal_index =
         std::min(current_idx + PotFieldAgent::kLookAheadIdx, env.race_track_->track_data_points_.x_m.size() - 1);
     return goal_index;
 }
@@ -158,48 +177,62 @@ int main(int argc, char **argv)
         agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
 
         env.visualizer_->setAgentToFollow(agent.get());
+        env.EnableScreenGrabber();
 
         // Sub-portion of the full race track
         size_t const    track_len = env.race_track_->track_data_points_.x_m.size();
         constexpr float kCloseEnoughToGoal{1.F};
 
-        for (size_t goal_ctr{0}; goal_ctr < kNumGoalsBeforeReset; ++goal_ctr)
+        size_t goal_ctr{0};
+        size_t episode_id{0};
+        while (goal_ctr < kNumGoalsBeforeReset)
         {
-            size_t low_steering_ctr = 0;
             env.resetAgent(agent.get(), kResetAgentsRandomly, kRandomizeLaneOnReset, kRandomizeHeadingOnReset);
 
             const size_t start_index = getGoalPointIdx(*agent, env);
             const size_t end_idx     = std::min(start_index + kTrajLength, track_len - 1);
             auto const   end_pt      = determineGoalPoint(*agent, env, end_idx);
+            size_t       step_id{0};
+            bool         reached_goal{true};
 
             float dist_to_goal = Vec2d{agent->pos_.x - end_pt.x, agent->pos_.y - end_pt.y}.length();
 
             env.step();
             while ((dist_to_goal > kCloseEnoughToGoal) && !agent->crashed_)
             {
-                // std::cout << "dist to goal: " << dist_to_goal << std::endl;
                 const size_t goal_index = getGoalPointIdx(*agent, env);
                 agent->setGoalPoint(determineGoalPoint(*agent, env, goal_index));
                 agent->updateAction();
 
-                agent->saveMeasurement(track_name, env);
+                agent->saveMeasurement(track_name, episode_id, step_id, env);
+                step_id++;
                 const float prev_dist_to_goal = dist_to_goal;
-                env.step(); // agent moves in the environment with current_action, produces next_state
+                env.step();
                 dist_to_goal = Vec2d{agent->pos_.x - end_pt.x, agent->pos_.y - end_pt.y}.length();
 
-                // std::this_thread::sleep_for(std::chrono::milliseconds(100));
                 if (agent->crashed_)
                 {
                     std::cerr << "CRASHED AT " << env.race_track_->track_name_ << std::endl;
-                    // return -1;
+                    reached_goal = false;
                 }
 
                 if (dist_to_goal > prev_dist_to_goal)
                 {
                     std::cout << "Overshot goal pt, breaking out to reset" << std::endl;
+                    reached_goal = false;
                     break;
                 }
             }
+
+            if (reached_goal)
+            {
+                ++goal_ctr;
+            }
+            else
+            {
+                agent->removeEpisodeFiles(track_name, episode_id, step_id);
+            }
+            ++episode_id;
             std::cout << "---- " << env.race_track_->track_name_ << ": " << goal_ctr << " / " << kNumGoalsBeforeReset
                       << std::endl;
         }

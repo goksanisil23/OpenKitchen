@@ -22,6 +22,7 @@ class ScreenGrabber
     ScreenGrabber(const int width, const int height);
     ~ScreenGrabber();
 
+    void captureRenderedFrame();
     void saveRenderTargetToFile(const std::string &filename);
 
     std::vector<uint8_t> getRenderTargetHost() const;

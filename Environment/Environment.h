@@ -51,16 +51,11 @@ class Environment
 
     bool isEnterPressed() const;
 
+    void EnableScreenGrabber();
     void saveImage(const std::string &filename) const;
 
-    std::vector<uint8_t> getRenderTargetHost() const
-    {
-        return screen_grabber_->getRenderTargetHost();
-    };
-    ScreenGrabber::RenderTargetInfo getRenderTargetInfo() const
-    {
-        return screen_grabber_->getRenderTargetInfo();
-    };
+    std::vector<uint8_t>            getRenderTargetHost() const;
+    ScreenGrabber::RenderTargetInfo getRenderTargetInfo() const;
 
   public:
     std::unique_ptr<RaceTrack>        race_track_;
