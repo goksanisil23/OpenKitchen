@@ -4,7 +4,7 @@
 namespace genetic
 {
 // Mates 2 agents s.t. the offspring node is the weighted average of the parents' nodes
-Network mate2AgentsAvg(const GeneticAgent &agent_1, const GeneticAgent &agent_2)
+Network mate2AgentsAvg(const std::unique_ptr<GeneticAgent> &agent_1, const std::unique_ptr<GeneticAgent> &agent_2)
 {
     constexpr float kMutationProb        = 0.05; // 0.05 probability for a given weight to mutate randomly
     constexpr float kDominantAgentWeight = 0.75; // 0.75 favoribility of the dominant agent during mating
@@ -12,9 +12,9 @@ Network mate2AgentsAvg(const GeneticAgent &agent_1, const GeneticAgent &agent_2)
     Network         offspring_nn;
 
     // superior agent
-    const Network &n1 = (agent_1.score_ > agent_2.score_) ? agent_1.nn_ : agent_2.nn_;
+    const Network &n1 = (agent_1->score_ > agent_2->score_) ? agent_1->nn_ : agent_2->nn_;
     // inferior agent
-    const Network &n2 = (agent_1.score_ > agent_2.score_) ? agent_2.nn_ : agent_1.nn_;
+    const Network &n2 = (agent_1->score_ > agent_2->score_) ? agent_2->nn_ : agent_1->nn_;
 
     std::mt19937                     rand_gen(std::random_device{}());
     std::uniform_real_distribution<> rand_dist(0.0, 1.0);
@@ -49,16 +49,16 @@ Network mate2AgentsAvg(const GeneticAgent &agent_1, const GeneticAgent &agent_2)
 }
 
 // Mate 2 agents s.t. the offsprint node is direct transfer of one of the parent's node, whose probability depends on the episode score
-Network mate2AgentsSelective(const GeneticAgent &agent_1, const GeneticAgent &agent_2)
+Network mate2AgentsSelective(const std::unique_ptr<GeneticAgent> &agent_1, const std::unique_ptr<GeneticAgent> &agent_2)
 {
     constexpr float kMutationProb        = 0.1;  // 0.05 probability for a given weight to mutate randomly
     constexpr float kDominantAgentThresh = 0.75; // 0.75 favoribility of the dominant agent during mating
     Network         offspring_nn;
 
     // superior agent
-    const Network &n1 = (agent_1.score_ > agent_2.score_) ? agent_1.nn_ : agent_2.nn_;
+    const Network &n1 = (agent_1->score_ > agent_2->score_) ? agent_1->nn_ : agent_2->nn_;
     // inferior agent
-    const Network &n2 = (agent_1.score_ > agent_2.score_) ? agent_2.nn_ : agent_1.nn_;
+    const Network &n2 = (agent_1->score_ > agent_2->score_) ? agent_2->nn_ : agent_1->nn_;
 
     std::mt19937                     rand_gen(std::random_device{}());
     std::uniform_real_distribution<> rand_dist(0.0, 1.0);
@@ -105,7 +105,7 @@ Network mate2AgentsSelective(const GeneticAgent &agent_1, const GeneticAgent &ag
 - Only top N-agents are chosen for mating
 - Probability to be chosen for mating is proportional to the agent score
 */
-void chooseAndMateAgents(std::vector<GeneticAgent> &agents)
+void chooseAndMateAgents(std::vector<std::unique_ptr<GeneticAgent>> &agents)
 {
     const size_t                         colony_size{agents.size()}; // original size of the colony
     std::vector<float>                   agent_scores;
@@ -114,22 +114,22 @@ void chooseAndMateAgents(std::vector<GeneticAgent> &agents)
     // Filter so that only the top N scores can be parents
     std::sort(agents.begin(),
               agents.end(),
-              [](const auto &agent_1, const auto &agent_2) { return agent_1.score_ > agent_2.score_; });
+              [](const auto &agent_1, const auto &agent_2) { return agent_1->score_ > agent_2->score_; });
     constexpr size_t kNumParents{5};
-    agents.resize(kNumParents);
+    // agents.resize(kNumParents);
 
     for (int32_t i{0}; i < static_cast<int32_t>(kNumParents); i++)
     {
-        agent_scores.push_back(agents[i].score_);
+        agent_scores.push_back(agents[i]->score_);
         agent_to_num_chosen_map.insert({i, 0});
     }
 
     // Top agent clone and mutation are always chosen at least once
     std::vector<Network> new_networks;
-    new_networks.push_back(agents.front().nn_);
+    new_networks.push_back(agents.front()->nn_);
     new_networks.emplace_back(mate2AgentsSelective(agents.front(), agents.front()));
     agent_to_num_chosen_map.at(0) += 2;
-    std::cout << "top: " << agents.front().score_ << std::endl;
+    std::cout << "top: " << agents.front()->score_ << std::endl;
 
     // Probability of each agent to into mating is proportional to it's score
     std::random_device           rand_device;
@@ -151,17 +151,17 @@ void chooseAndMateAgents(std::vector<GeneticAgent> &agents)
         new_networks.emplace_back(mate2AgentsSelective(agents.at(first_agent), agents.at(second_agent)));
     }
     // Summarize who's chosen how many times
-    for (size_t id{0}; id < agents.size(); id++)
+    for (size_t id{0}; id < kNumParents; id++)
     {
-        std::cout << std::left << std::setw(15) << "agent score: " << std::right << std::setw(6) << agents[id].score_
+        std::cout << std::left << std::setw(15) << "agent score: " << std::right << std::setw(6) << agents[id]->score_
                   << " # chosen: " << std::right << std::setw(6) << agent_to_num_chosen_map.at(id) << std::endl;
     }
 
-    agents.resize(colony_size);
+    // agents.resize(colony_size);
     for (size_t id{0}; id < agents.size(); id++)
     {
-        agents[id].id_ = static_cast<int16_t>(id);
-        agents[id].nn_ = std::move(new_networks[id]);
+        agents[id]->id_ = static_cast<int16_t>(id);
+        agents[id]->nn_ = std::move(new_networks[id]);
     }
 }
 } // namespace genetic

@@ -9,7 +9,6 @@
 #include "VisUtils.hpp"
 
 #include "raylib-cpp.hpp"
-#include "spmc_queue.h"
 
 #include "Environment/Environment.h"
 #include "GeneticAgent.hpp"
@@ -25,17 +24,20 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    Environment env(argv[1]);
-
-    std::vector<genetic::GeneticAgent> agents;
+    std::vector<std::unique_ptr<genetic::GeneticAgent>> agents;
     agents.reserve(kNumAgents);
     for (int16_t i{0}; i < kNumAgents; i++)
     {
-        agents.push_back(genetic::GeneticAgent({env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx],
-                                                env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]},
-                                               env.race_track_->headings_[0],
-                                               i));
-        env.setAgent(&agents.back());
+        agents.push_back(std::make_unique<genetic::GeneticAgent>(Vec2d{0, 0}, 0, i));
+    }
+
+    Environment env(argv[1], createBaseAgentPtrs(agents));
+
+    const float start_pos_x{env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx]};
+    const float start_pos_y{env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]};
+    for (auto &agent : agents)
+    {
+        agent->reset({start_pos_x, start_pos_y}, env.race_track_->headings_[RaceTrack::kStartingIdx]);
     }
 
     bool reset_episode = false;
@@ -64,9 +66,9 @@ int main(int argc, char **argv)
 
             for (auto &agent : agents)
             {
-                agent.reset({env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx],
-                             env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]},
-                            env.race_track_->headings_[0]);
+                agent->reset({env.race_track_->track_data_points_.x_m[RaceTrack::kStartingIdx],
+                              env.race_track_->track_data_points_.y_m[RaceTrack::kStartingIdx]},
+                             env.race_track_->headings_[0]);
             }
             reset_episode = false;
         }
@@ -77,7 +79,7 @@ int main(int argc, char **argv)
         {
             for (auto &agent : agents)
             {
-                agent.updateAction();
+                agent->updateAction();
             }
 
             env.step();
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
             all_done = true;
             for (auto &agent : agents)
             {
-                if (!agent.crashed_)
+                if (!agent->crashed_)
                 {
                     all_done = false;
                 }
@@ -93,6 +95,7 @@ int main(int argc, char **argv)
             iteration++;
             // genetic::util::drawActionBar(agents, iteration); //TODO
         }
+        reset_episode = true;
     }
     return 0;
 }
