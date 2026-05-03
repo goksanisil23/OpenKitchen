@@ -1,7 +1,7 @@
 # Conditional Flow Matching for BEV -> Action
 
 > [!NOTE]
-> Using training data from **all tracks** that are obtained via FieldNavigators/collect_data/collect_data_random is sufficient to train agents that can completely navigate the tracks.
+> Using training data from **all tracks** that are obtained via FieldNavigators/collect_data/collect_data_random is required to train agents that can completely navigate the tracks.
 
 Coonditional flow matching implementaion:
 - Condition: BEV image (`.png`)
